@@ -421,8 +421,7 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
           <option value="no">未填答案</option>
         </select>
       </div>
-    </div>
-      <div style="align-self:flex-end">
+      <div style="margin-top:6px">
         <button id="err-select-all">全选当前筛选结果</button>
         <button id="err-select-none">取消选择</button>
         <button class="primary" id="err-export-pdf">导出 PDF</button>
@@ -478,7 +477,7 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
 
 <footer>
   个人错题仍保存在当前浏览器中，建议定期导出备份；也可将选中的错题及已填写的答案整理后，通过浏览器保存为 PDF。PDF 仅供阅读和打印，不替代可恢复数据的备份文件。内置题库随当前页面版本提供，离线可用，但不会在关闭或打开页面时自行增加新题；更新题库需要取得有权使用、可核实的题目后发布新版页面。AI 问答为可选功能，配置可用服务后需要联网；未配置或服务不可用时，本地错题、题库和 PDF 导出功能照常使用。本项目只提供 Web 版；溯源器源码与网站一同存放在该项目的 GitHub 仓库中，并按项目许可开源，第三方试题的使用权限另行遵守。
-  <p style="margin-top:8px">版本：v1.6.0 · 批量录入 / CSV 导入 · AI 多轮对话 · SM-2 四档自评复习 · 备份自动迁移 · <a href="https://github.com/uahz/gaokao-error-tracer">GitHub</a></p>
+  <p style="margin-top:8px">版本：v1.6.1 · 批量录入 / CSV 导入 · AI 多轮对话 · SM-2 四档自评复习 · 备份自动迁移 · <a href="https://github.com/uahz/gaokao-error-tracer">GitHub</a></p>
 </footer>
 
 <script>
@@ -1459,10 +1458,10 @@ document.getElementById("err-backup-import").addEventListener("change", function
           if (!/^\d{4}-\d{2}-\d{2}$/.test(k)) return;
           const rec = normalizeLogRec(parsed.reviewLog[k]);
           const cur = normalizeLogRec(reviewLog[k]);
-          cur.again += rec.again;
-          cur.hard += rec.hard;
-          cur.good += rec.good;
-          cur.easy += rec.easy;
+          cur.again = Math.max(cur.again, rec.again);
+          cur.hard = Math.max(cur.hard, rec.hard);
+          cur.good = Math.max(cur.good, rec.good);
+          cur.easy = Math.max(cur.easy, rec.easy);
           reviewLog[k] = cur;
           logMerged += logTotal(rec);
         });

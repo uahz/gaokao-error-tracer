@@ -1,0 +1,42 @@
+name: CI
+
+on: [push, pull_request]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: 提取内联脚本并做语法检查
+        run: |
+          python3 - <<'EOF'
+          import re
+          html = open('index.html', encoding='utf-8').read()
+          scripts = re.findall(r'<script>(.*?)</script>', html, re.S)
+          assert scripts, "index.html 中未找到内联脚本"
+          open('/tmp/app.js', 'w', encoding='utf-8').write('\n'.join(scripts))
+          print('提取脚本字节数:', len('\n'.join(scripts)))
+          EOF
+          node --check /tmp/app.js
+          echo "JS 语法检查通过"
+
+      - name: 密钥与敏感信息扫描
+        run: |
+          set -e
+          if grep -rEn "(ghp_[A-Za-z0-9]{36}|github_pat_[A-Za-z0-9_]{60,}|sk-[A-Za-z0-9]{20,}|AKIA[0-9A-Z]{16}|xox[baprs]-|BEGIN (RSA|OPENSSH) PRIVATE KEY)" \
+             --include="*.html" --include="*.js" --include="*.json" --include="*.toml" --include="*.yml" --include="*.yaml" . ; then
+            echo "::error::检测到疑似密钥/令牌，禁止提交！"
+            exit 1
+          fi
+          echo "未发现密钥或令牌"
+
+      - name: 页面内容自检（空库诚实提示必须存在）
+        run: |
+          grep -q "当前版本尚未收录可核实且有权使用的试题" index.html
+          grep -q "密钥与单文件边界" index.html
+          echo "页面内容自检通过"

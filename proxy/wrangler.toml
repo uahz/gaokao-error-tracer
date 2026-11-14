@@ -1,0 +1,12 @@
+name = "gaokao-tracer-ai-proxy"
+main = "cloudflare-worker.js"
+compatibility_date = "2024-12-01"
+
+# 非敏感变量可直接写在这里；Secret 一律用 `wrangler secret put` 设置，不要写进本文件！
+[vars]
+# ALLOWED_ORIGINS = "https://uahz.github.io"
+# RATE_LIMIT_PER_MIN = "10"
+# 以下两个是敏感 Secret，部署时执行：
+#   npx wrangler secret put UPSTREAM_BASE_URL
+#   npx wrangler secret put UPSTREAM_API_KEY
+#   npx wrangler secret put PROXY_TOKEN   （可选）

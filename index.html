@@ -174,18 +174,11 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
   <section class="card" id="ai-section">
     <h2>AI 问答（可选）</h2>
     <div class="boundary" style="font-size:13px">
-      <strong>密钥与单文件边界：</strong>推荐使用“自建代理”模式——把 API 密钥配置在代理服务端的环境变量中，浏览器只填代理地址，密钥不会进入浏览器环境（代理模板见仓库 proxy/ 目录）。若改用“浏览器直连”模式，API 密钥仅保存在当前页面会话的内存中，刷新页面即消失；本页面不会把密钥写入源码、内置题库、导出备份、PDF 或 localStorage，也不得提交到代码仓库，但直连意味着密钥暴露于浏览器环境，本单文件页面无法为直连模式的密钥保密。无论哪种模式，接口都必须使用 HTTPS；未经你的操作，页面不会向 AI 服务发送任何内容。
+      <strong>密钥与单文件边界：</strong>AI 问答使用你自己的 API 服务：接口地址必须使用 HTTPS，所用服务须允许浏览器跨域请求（CORS）。API 密钥仅保存在当前页面会话的内存中，刷新页面即消失；本页面不会把密钥写入源码、内置题库、导出备份、PDF 或 localStorage，也不得提交到代码仓库。浏览器直连意味着密钥存在于浏览器环境中，请仅在个人设备上使用；若所用服务不允许跨域或需要更严格的密钥隔离，可选用仓库 proxy/ 目录提供的代理模板（进阶可选项，非必需）。未经你的操作，页面不会向 AI 服务发送任何内容。
     </div>
     <div class="row">
-      <div style="flex:0 0 140px">
-        <label for="ai-mode">连接方式</label>
-        <select id="ai-mode">
-          <option value="direct">浏览器直连</option>
-          <option value="proxy">自建代理（推荐）</option>
-        </select>
-      </div>
-      <div style="flex:1 1 240px">
-        <label for="ai-url" id="ai-url-label">服务接口地址（HTTPS，Chat Completions 兼容）</label>
+      <div style="flex:1 1 260px">
+        <label for="ai-url">服务接口地址（HTTPS，Chat Completions 兼容）</label>
         <input type="url" id="ai-url" placeholder="https://api.example.com/v1/chat/completions" spellcheck="false">
       </div>
       <div style="flex:1 1 150px">
@@ -194,16 +187,12 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
       </div>
     </div>
     <div class="row" style="margin-top:8px">
-      <div style="flex:1 1 260px" id="ai-key-wrap">
+      <div style="flex:1 1 260px">
         <label for="ai-key">API 密钥（仅本次会话内存中保存，不会被存储）</label>
         <input type="password" id="ai-key" placeholder="sk-..." autocomplete="off" spellcheck="false">
       </div>
-      <div style="flex:1 1 260px" id="ai-token-wrap" class="hidden">
-        <label for="ai-token">代理访问口令（可选；仅当代理设置了 PROXY_TOKEN 时填写，仅内存中保存）</label>
-        <input type="password" id="ai-token" autocomplete="off" spellcheck="false">
-      </div>
       <div style="align-self:flex-end">
-        <button id="ai-save-cfg">保存连接配置（不含密钥 / 口令）</button>
+        <button id="ai-save-cfg">保存接口与模型（不含密钥）</button>
       </div>
     </div>
     <p class="ai-status" id="ai-cfg-status"></p>
@@ -344,7 +333,7 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
 
 <footer>
   个人错题仍保存在当前浏览器中，建议定期导出备份；也可将选中的错题及已填写的答案整理后，通过浏览器保存为 PDF。PDF 仅供阅读和打印，不替代可恢复数据的备份文件。内置题库随当前页面版本提供，离线可用，但不会在关闭或打开页面时自行增加新题；更新题库需要取得有权使用、可核实的题目后发布新版页面。AI 问答为可选功能，配置可用服务后需要联网；未配置或服务不可用时，本地错题、题库和 PDF 导出功能照常使用。本项目只提供 Web 版；溯源器源码与网站一同存放在该项目的 GitHub 仓库中，并按项目许可开源，第三方试题的使用权限另行遵守。
-  <p style="margin-top:8px">版本：v1.2.0 · 代理部署说明见仓库 <code>proxy/</code> 目录 · <a href="https://github.com/uahz/gaokao-error-tracer">GitHub</a></p>
+  <p style="margin-top:8px">版本：v1.2.1 · 可选代理模板见仓库 <code>proxy/</code> 目录 · <a href="https://github.com/uahz/gaokao-error-tracer">GitHub</a></p>
 </footer>
 
 <script>
@@ -709,73 +698,45 @@ document.getElementById("err-backup-import").addEventListener("change", function
   reader.readAsText(file);
 });
 
-/* ---------- AI 问答（密钥与口令仅存于内存） ---------- */
-let aiApiKey = "";        // 直连模式的 API 密钥：仅当前页面会话内存，刷新即消失，绝不写入任何持久化位置
-let aiProxyToken = "";    // 代理模式的访问口令：同样仅存内存
+/* ---------- AI 问答（密钥仅存于内存） ---------- */
+let aiApiKey = "";        // 仅当前页面会话内存，刷新即消失，绝不写入任何持久化位置
 let aiController = null;  // 用于“停止生成”
 let aiBusy = false;
 const aiChat = document.getElementById("ai-chat");
 const aiLoading = document.getElementById("ai-loading");
 const aiStopBtn = document.getElementById("ai-stop");
 
-function applyAiMode(){
-  const proxy = document.getElementById("ai-mode").value === "proxy";
-  document.getElementById("ai-key-wrap").classList.toggle("hidden", proxy);
-  document.getElementById("ai-token-wrap").classList.toggle("hidden", !proxy);
-  const label = document.getElementById("ai-url-label");
-  const urlInput = document.getElementById("ai-url");
-  if (proxy){
-    label.textContent = "代理地址（HTTPS，部署方法见仓库 proxy/ 目录）";
-    urlInput.placeholder = "https://your-proxy.workers.dev";
-  } else {
-    label.textContent = "服务接口地址（HTTPS，Chat Completions 兼容）";
-    urlInput.placeholder = "https://api.example.com/v1/chat/completions";
-  }
-  updateAiCfgStatus();
-}
 function loadAiCfg(){
   try {
     const c = JSON.parse(localStorage.getItem(AI_CFG_KEY) || "{}");
-    if (c.mode) document.getElementById("ai-mode").value = (c.mode === "proxy") ? "proxy" : "direct";
     if (c.url) document.getElementById("ai-url").value = String(c.url);
     if (c.model) document.getElementById("ai-model").value = String(c.model);
   } catch(e){}
-  applyAiMode();
+  updateAiCfgStatus();
 }
 function updateAiCfgStatus(){
-  const mode = document.getElementById("ai-mode").value;
   const url = document.getElementById("ai-url").value.trim();
   const model = document.getElementById("ai-model").value.trim();
-  const secret = (mode === "proxy") ? aiProxyToken : aiApiKey;
-  setText("ai-cfg-status", (mode === "proxy" ? "模式：自建代理　" : "模式：浏览器直连　") +
-    (url ? "地址：已填写　" : "地址：未填写　") +
+  setText("ai-cfg-status", (url ? "接口：已填写　" : "接口：未填写　") +
     (model ? "模型：已填写　" : "模型：未填写　") +
-    (mode === "proxy"
-      ? (secret ? "口令：本次会话已输入（内存中）" : "口令：未输入（若代理未设置口令可不填）")
-      : (secret ? "密钥：本次会话已输入（内存中）" : "密钥：未输入")));
+    (aiApiKey ? "密钥：本次会话已输入（内存中）" : "密钥：未输入"));
 }
-document.getElementById("ai-mode").addEventListener("change", applyAiMode);
 document.getElementById("ai-save-cfg").addEventListener("click", function(){
-  const mode = document.getElementById("ai-mode").value;
   const url = document.getElementById("ai-url").value.trim();
   const model = document.getElementById("ai-model").value.trim();
   if (url && !/^https:\/\//i.test(url)){
-    alert("地址必须使用 HTTPS。");
+    alert("接口地址必须使用 HTTPS。");
     return;
   }
-  try { localStorage.setItem(AI_CFG_KEY, JSON.stringify({mode:mode, url:url, model:model})); } catch(e){}
+  try { localStorage.setItem(AI_CFG_KEY, JSON.stringify({url:url, model:model})); } catch(e){}
   updateAiCfgStatus();
-  alert("已保存连接配置（不含密钥和口令）。");
+  alert("已保存接口地址与模型名称（不含密钥）。");
 });
 ["ai-url","ai-model"].forEach(function(id){
   document.getElementById(id).addEventListener("input", updateAiCfgStatus);
 });
 document.getElementById("ai-key").addEventListener("input", function(){
   aiApiKey = this.value;       // 只赋给内存变量
-  updateAiCfgStatus();
-});
-document.getElementById("ai-token").addEventListener("input", function(){
-  aiProxyToken = this.value;   // 只赋给内存变量
   updateAiCfgStatus();
 });
 aiStopBtn.addEventListener("click", function(){
@@ -844,32 +805,29 @@ document.getElementById("ai-send").addEventListener("click", async function(){
   const btn = this;
   if (aiBusy){ alert("正在生成回答，请等待完成或点击“停止生成”。"); return; }
 
-  const mode = document.getElementById("ai-mode").value;
   const url = document.getElementById("ai-url").value.trim();
   const model = document.getElementById("ai-model").value.trim() || "gpt-3.5-turbo";
   const useStream = document.getElementById("ai-stream").checked;
   const question = document.getElementById("ai-question").value.trim();
 
   if (!question){ alert("请输入问题。"); return; }
-  if (!url){ alert("请先填写" + (mode === "proxy" ? "代理地址" : "AI 服务接口地址") + "。"); return; }
+  if (!url){ alert("请先填写 AI 服务接口地址。"); return; }
   if (!/^https:\/\//i.test(url)){
-    alert("地址必须使用 HTTPS，以保护传输内容与凭据。");
+    alert("接口地址必须使用 HTTPS，以保护传输内容与密钥。");
     return;
   }
-  if (mode === "direct" && !aiApiKey){
-    alert("直连模式需要输入 API 密钥（仅保存在本次会话内存中）。\n更安全的做法：改用“自建代理”模式，把密钥配置在代理服务端，浏览器无需填密钥（部署方法见仓库 proxy/ 目录）。");
+  if (!aiApiKey){
+    alert("请先输入你自己的 API 密钥（仅保存在本次会话内存中）。");
     return;
   }
 
   const base = url.replace(/\/+$/, "");
   const endpoint = /\/chat\/completions$/.test(base) ? base : base + "/chat/completions";
 
-  const headers = { "Content-Type": "application/json" };
-  if (mode === "direct"){
-    headers["Authorization"] = "Bearer " + aiApiKey;
-  } else if (aiProxyToken){
-    headers["X-Proxy-Token"] = aiProxyToken;
-  }
+  const headers = {
+    "Content-Type": "application/json",
+    "Authorization": "Bearer " + aiApiKey
+  };
 
   const context = collectAiContext();
   const content = context ? context + "\n\n【问题】" + question : question;
@@ -960,9 +918,7 @@ document.getElementById("ai-send").addEventListener("click", async function(){
     } else {
       let hint = "";
       if (err instanceof TypeError){
-        hint = (mode === "proxy")
-          ? "常见原因：代理地址有误、代理未配置 CORS、或代理的上游密钥 / 额度有问题。"
-          : "常见原因：接口不允许浏览器跨域请求（CORS）、网络不可达或地址有误。建议改用“自建代理”模式（部署方法见仓库 proxy/ 目录）。";
+        hint = "常见原因：接口不允许浏览器跨域请求（CORS）、网络不可达或地址有误。若所用服务不支持浏览器直连，可选用仓库 proxy/ 目录提供的代理模板（进阶可选项）。";
       }
       appendChatMsg("error", "请求失败：" + err.message + (hint ? "\n" + hint : "") +
         "\n本地错题、题库与 PDF 导出功能不受影响。");

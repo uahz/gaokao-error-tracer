@@ -147,6 +147,12 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
 .bar-track{flex:1;background:#f3f4f6;border-radius:4px;height:14px;overflow:hidden}
 .bar-fill{display:block;height:100%;background:var(--brand);border-radius:4px}
 .bar-count{flex:0 0 40px;color:var(--muted)}
+
+/* ===== 复习热力图 ===== */
+.heat-grid{display:grid;grid-auto-flow:column;grid-template-rows:repeat(7,12px);gap:3px;overflow-x:auto;padding-bottom:4px}
+.heat{width:12px;height:12px;border-radius:2px;background:#e5e7eb;display:block}
+.heat-1{background:#bfdbfe}.heat-2{background:#93c5fd}.heat-3{background:#60a5fa}.heat-4{background:#1d4ed8}
+.heat-legend{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--muted);margin-top:6px}
 </style>
 </head>
 <body>
@@ -223,10 +229,11 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
         <input type="checkbox" id="ai-stream" checked> 流式输出
       </label>
       <button class="primary" id="ai-send">发送提问</button>
+      <button id="ai-practice">生成同类练习题</button>
       <button id="ai-stop" class="hidden">停止生成</button>
       <button id="ai-clear" class="hidden">清空对话</button>
     </div>
-    <p class="ai-status">未经你的操作，本页面不会自动向 AI 服务发送任何个人错题。</p>
+    <p class="ai-status">未经你的操作，本页面不会自动向 AI 服务发送任何个人错题。“生成同类练习题”会把勾选的错题连同出题要求一并发给 AI，且仅在点击时发生。</p>
     <div class="chat-box hidden" id="ai-chat"></div>
     <div class="chat-loading hidden" id="ai-loading">正在请求 AI 服务…</div>
   </section>
@@ -252,6 +259,15 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
         <h3>复习掌握度（Leitner 盒子）</h3>
         <div id="stat-box"></div>
       </div>
+    </div>
+    <h3 style="margin-top:14px">复习热力图（近 18 周）</h3>
+    <div class="heat-grid" id="stat-heatmap"></div>
+    <div class="heat-legend">
+      <span>少</span>
+      <span class="heat"></span><span class="heat heat-1"></span><span class="heat heat-2"></span>
+      <span class="heat heat-3"></span><span class="heat heat-4"></span>
+      <span>多</span>
+      <span id="stat-heatmap-tip" style="margin-left:8px"></span>
     </div>
     <div class="empty-tip" id="stats-empty">暂无错题数据。录入错题后，这里会显示分布统计和今日待复习数量。</div>
   </section>
@@ -394,7 +410,7 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
 
 <footer>
   个人错题仍保存在当前浏览器中，建议定期导出备份；也可将选中的错题及已填写的答案整理后，通过浏览器保存为 PDF。PDF 仅供阅读和打印，不替代可恢复数据的备份文件。内置题库随当前页面版本提供，离线可用，但不会在关闭或打开页面时自行增加新题；更新题库需要取得有权使用、可核实的题目后发布新版页面。AI 问答为可选功能，配置可用服务后需要联网；未配置或服务不可用时，本地错题、题库和 PDF 导出功能照常使用。本项目只提供 Web 版；溯源器源码与网站一同存放在该项目的 GitHub 仓库中，并按项目许可开源，第三方试题的使用权限另行遵守。
-  <p style="margin-top:8px">版本：v1.3.0 · 间隔重复复习 · 错题统计 · 多条件检索 · 可选代理模板见仓库 <code>proxy/</code> 目录 · <a href="https://github.com/uahz/gaokao-error-tracer">GitHub</a></p>
+  <p style="margin-top:8px">版本：v1.4.0 · 同类练习题生成 · 复习热力图 · 间隔重复复习 · 可选代理模板见仓库 <code>proxy/</code> 目录 · <a href="https://github.com/uahz/gaokao-error-tracer">GitHub</a></p>
 </footer>
 
 <script>
@@ -418,6 +434,23 @@ const BUILT_IN_BANK = [];
 
 const ERRORS_KEY = "gd2026_tracer_errors_v2";   // 个人错题（独立存储，与题库无关）
 const AI_CFG_KEY  = "gd2026_tracer_ai_cfg_v2";  // 仅存接口地址与模型名，绝不存密钥
+const REVIEW_LOG_KEY = "gd2026_tracer_review_log_v1";  // 复习打卡：{ "YYYY-MM-DD": {good:n, bad:n} }
+
+/* ---------- 复习打卡记录（供热力图使用，仅本机） ---------- */
+let reviewLog = {};
+try { reviewLog = JSON.parse(localStorage.getItem(REVIEW_LOG_KEY) || "{}") || {}; } catch(e){ reviewLog = {}; }
+if (typeof reviewLog !== "object" || Array.isArray(reviewLog)) reviewLog = {};
+function saveReviewLog(){
+  try { localStorage.setItem(REVIEW_LOG_KEY, JSON.stringify(reviewLog)); } catch(e){}
+}
+function logReview(goodInc, badInc){
+  const key = todayISO();
+  const rec = reviewLog[key] || {good:0, bad:0};
+  rec.good += goodInc;
+  rec.bad += badInc;
+  reviewLog[key] = rec;
+  saveReviewLog();
+}
 
 /* ---------- 工具：安全渲染 ---------- */
 function escapeHtml(s){
@@ -681,10 +714,12 @@ const reviewSection = document.getElementById("review-section");
 let reviewQueue = [], reviewIdx = 0;
 let reviewGood = 0, reviewBad = 0, reviewSkip = 0;
 
-function todayISO(){
-  const d = new Date();
+function dateKey(d){
   const pad = function(n){ return String(n).padStart(2, "0"); };
   return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+}
+function todayISO(){
+  return dateKey(new Date());
 }
 function dueAfterDays(days){
   const d = new Date(Date.now() + days * 86400000);
@@ -767,6 +802,7 @@ function gradeCurrent(remembered){
     e.due = todayISO();
     reviewBad++;
   }
+  logReview(remembered ? 1 : 0, remembered ? 0 : 1);   // 更新复习打卡（供热力图）
   saveErrors();
   renderErrors();   // 同步刷新统计与列表徽标
 }
@@ -829,6 +865,7 @@ function renderStats(){
       document.getElementById(id).innerHTML = "";
     });
     empty.classList.remove("hidden");
+    renderHeatmap();   // 热力图始终渲染（无错题也可能有历史打卡）
     return;
   }
   empty.classList.add("hidden");
@@ -862,12 +899,41 @@ function renderStats(){
     .filter(function(k){ return boxMap[k]; })
     .map(function(k){ return {label:k, count:boxMap[k]}; });
   barChart("stat-box", boxEntries);
+
+  renderHeatmap();
+}
+
+/* ---------- 复习热力图（近 18 周，纯本地渲染） ---------- */
+function renderHeatmap(){
+  const el = document.getElementById("stat-heatmap");
+  const tip = document.getElementById("stat-heatmap-tip");
+  const today = new Date();
+  const dow = (today.getDay() + 6) % 7;   // 周一 = 0
+  const startOffset = 119 + dow;          // 最后一格是今天，第一格对齐周一
+  let total = 0;
+  const cells = [];
+  for (let i = 0; i <= startOffset; i++){
+    const d = new Date(today.getTime() - (startOffset - i) * 86400000);
+    const rec = reviewLog[dateKey(d)];
+    const good = rec ? rec.good : 0;
+    const bad = rec ? rec.bad : 0;
+    const n = good + bad;
+    total += n;
+    const level = n === 0 ? 0 : (n <= 2 ? 1 : (n <= 5 ? 2 : (n <= 10 ? 3 : 4)));
+    const label = (d.getMonth() + 1) + "月" + d.getDate() + "日" +
+      (n ? "：记住 " + good + "，没记住 " + bad : "：无复习记录");
+    cells.push('<span class="heat heat-' + level + '" title="' + escapeHtml(label) + '"></span>');
+  }
+  el.innerHTML = cells.join("");
+  tip.textContent = total
+    ? "近 18 周共复习 " + total + " 次"
+    : "还没有复习记录：完成一次复习后，这里会出现打卡方块";
 }
 
 /* ---------- 备份（与 PDF 导出相互独立） ---------- */
 document.getElementById("err-backup-export").addEventListener("click", function(){
   if (!errors.length){ alert("当前没有错题数据可备份。"); return; }
-  const blob = new Blob([JSON.stringify({version:2, exportedAt:new Date().toISOString(), errors:errors}, null, 2)],
+  const blob = new Blob([JSON.stringify({version:2, exportedAt:new Date().toISOString(), errors:errors, reviewLog:reviewLog}, null, 2)],
     {type:"application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
@@ -907,6 +973,17 @@ document.getElementById("err-backup-import").addEventListener("change", function
       if (!confirm("将合并导入 " + valid.length + " 条错题（与现有数据合并，不会清空已有错题），继续吗？")) return;
       const ids = new Set(errors.map(function(e){ return e.id; }));
       valid.forEach(function(e){ if (!ids.has(e.id)) errors.push(e); });
+      if (data.reviewLog && typeof data.reviewLog === "object" && !Array.isArray(data.reviewLog)){
+        Object.keys(data.reviewLog).forEach(function(k){
+          const rec = data.reviewLog[k];
+          if (!rec || typeof rec !== "object") return;
+          const cur = reviewLog[k] || {good:0, bad:0};
+          cur.good += (Number(rec.good) || 0);
+          cur.bad += (Number(rec.bad) || 0);
+          reviewLog[k] = cur;
+        });
+        saveReviewLog();
+      }
       saveErrors();
       renderErrors();
       alert("导入完成。");
@@ -974,8 +1051,7 @@ function syncAiAttachState(){
 function collectAiContext(){
   let parts = [];
   if (document.getElementById("ai-attach-question").checked && bankItems.length){
-    const kw = document.getElementById("bank-search").value.trim();
-    const first = kw ? bankItems[0] : bankItems[0];
+    const first = bankItems[0];
     if (first){
       parts.push("【题目】年份：" + first.year + "　科目：" + first.subject +
         "　考试：" + first.exam + "\n" + first.stem +
@@ -985,17 +1061,19 @@ function collectAiContext(){
   if (document.getElementById("ai-attach-errors").checked){
     const items = selectedErrorItems();
     if (items.length){
-      parts.push(items.map(function(e, i){
-        return "【个人错题 " + (i+1) + "】" +
-          (e.subject ? "科目：" + e.subject + "　" : "") +
-          (e.year ? "年份：" + e.year + "　" : "") + "\n" + e.stem +
-          (e.answer ? "\n答案：" + e.answer : "\n（未填写答案）") +
-          (e.mine ? "\n我的作答：" + e.mine : "") +
-          (e.note ? "\n错因：" + e.note : "");
-      }).join("\n\n"));
+      parts.push(items.map(formatErrorForAi).join("\n\n"));
     }
   }
   return parts.join("\n\n");
+}
+
+function formatErrorForAi(e, i){
+  return "【个人错题 " + (i + 1) + "】" +
+    (e.subject ? "科目：" + e.subject + "　" : "") +
+    (e.year ? "年份：" + e.year + "　" : "") + "\n" + e.stem +
+    (e.answer ? "\n答案：" + e.answer : "\n（未填写答案）") +
+    (e.mine ? "\n我的作答：" + e.mine : "") +
+    (e.note ? "\n错因：" + e.note : "");
 }
 
 function appendChatMsg(cls, text){
@@ -1021,16 +1099,15 @@ function parseSseLine(line){
   return [null, false];
 }
 
-document.getElementById("ai-send").addEventListener("click", async function(){
-  const btn = this;
+/* AI 请求共享入口：校验配置 → 请求（支持流式）→ 渲染回答 / 错误 */
+async function runAiRequest(content, displayText){
+  const btn = document.getElementById("ai-send");
   if (aiBusy){ alert("正在生成回答，请等待完成或点击“停止生成”。"); return; }
 
   const url = document.getElementById("ai-url").value.trim();
   const model = document.getElementById("ai-model").value.trim() || "gpt-3.5-turbo";
   const useStream = document.getElementById("ai-stream").checked;
-  const question = document.getElementById("ai-question").value.trim();
 
-  if (!question){ alert("请输入问题。"); return; }
   if (!url){ alert("请先填写 AI 服务接口地址。"); return; }
   if (!/^https:\/\//i.test(url)){
     alert("接口地址必须使用 HTTPS，以保护传输内容与密钥。");
@@ -1043,20 +1120,14 @@ document.getElementById("ai-send").addEventListener("click", async function(){
 
   const base = url.replace(/\/+$/, "");
   const endpoint = /\/chat\/completions$/.test(base) ? base : base + "/chat/completions";
-
   const headers = {
     "Content-Type": "application/json",
     "Authorization": "Bearer " + aiApiKey
   };
 
-  const context = collectAiContext();
-  const content = context ? context + "\n\n【问题】" + question : question;
-
   aiChat.classList.remove("hidden");
   document.getElementById("ai-clear").classList.remove("hidden");
-  appendChatMsg("user", context ? question + "\n（已附带：" +
-    (document.getElementById("ai-attach-question").checked && bankItems.length ? "当前题目 " : "") +
-    (document.getElementById("ai-attach-errors").checked ? "选中的错题 " : "") + "）" : question);
+  appendChatMsg("user", displayText);
 
   aiBusy = true;
   btn.disabled = true;
@@ -1152,6 +1223,34 @@ document.getElementById("ai-send").addEventListener("click", async function(){
     document.getElementById("ai-question").value = "";
     aiChat.scrollTop = aiChat.scrollHeight;
   }
+}
+
+document.getElementById("ai-send").addEventListener("click", async function(){
+  const question = document.getElementById("ai-question").value.trim();
+  if (!question){ alert("请输入问题。"); return; }
+  const context = collectAiContext();
+  const content = context ? context + "\n\n【问题】" + question : question;
+  const displayText = context ? question + "\n（已附带：" +
+    (document.getElementById("ai-attach-question").checked && bankItems.length ? "当前题目 " : "") +
+    (document.getElementById("ai-attach-errors").checked ? "选中的错题 " : "") + "）" : question;
+  await runAiRequest(content, displayText);
+});
+
+/* 同类练习题：预设提示词 + 勾选的错题，仅在用户点击时发送 */
+const AI_PRACTICE_PROMPT =
+  "请基于下面的错题，考查相同的知识点，出一道难度相近的同类练习题（不要重复原题），" +
+  "给出参考答案和简要解析，并指出做这类题时需要注意的易错点。";
+
+document.getElementById("ai-practice").addEventListener("click", async function(){
+  if (aiBusy){ alert("正在生成回答，请等待完成或点击“停止生成”。"); return; }
+  const items = selectedErrorItems();
+  if (!items.length){
+    alert("请先在错题列表中勾选要用作出题参考的错题。");
+    return;
+  }
+  const content = AI_PRACTICE_PROMPT + "\n\n" + items.map(formatErrorForAi).join("\n\n");
+  const displayText = "请基于我选中的 " + items.length + " 道错题出一道同类练习题（含参考答案与解析）。\n（已附带：选中的错题）";
+  await runAiRequest(content, displayText);
 });
 document.getElementById("ai-clear").addEventListener("click", function(){
   aiChat.innerHTML = "";

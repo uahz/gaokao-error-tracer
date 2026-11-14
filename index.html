@@ -100,6 +100,14 @@ button:disabled{opacity:.5;cursor:not-allowed}
 /* ===== 复习 ===== */
 .review-area{border:1px solid var(--line);border-radius:8px;padding:14px;background:#fafafa}
 .review-answer{margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.grade-btns{display:flex;flex-wrap:wrap;gap:8px}
+.grade-btn{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:86px;line-height:1.25}
+.grade-btn small{font-size:11px;font-weight:400;opacity:.85}
+.grade-btn.again{border-color:#fca5a5;color:var(--danger);background:var(--danger-soft)}
+.grade-btn.hard{border-color:#fcd34d;color:#92400e;background:#fffbeb}
+.grade-btn.good{border-color:#93c5fd;color:var(--brand);background:var(--brand-soft)}
+.grade-btn.easy{border-color:#86efac;color:#166534;background:#f0fdf4}
+.review-hint{font-size:12px;color:var(--muted);margin:8px 0 0}
 
 /* ===== 错题列表 ===== */
 .error-item{border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:10px 0;background:#fafafa}
@@ -256,7 +264,7 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
         <div id="stat-note"></div>
       </div>
       <div>
-        <h3>复习掌握度（Leitner 盒子）</h3>
+        <h3>复习间隔分布（SM-2）</h3>
         <div id="stat-box"></div>
       </div>
     </div>
@@ -377,7 +385,7 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
   <!-- ==================== 复习模式（间隔重复） ==================== -->
   <section class="card hidden" id="review-section">
     <div class="row">
-      <h2 style="margin:0" class="grow">复习模式（间隔重复）</h2>
+      <h2 style="margin:0" class="grow">复习模式（SM-2 间隔重复）</h2>
       <button id="review-exit">退出复习</button>
     </div>
     <div id="review-progress" style="font-size:13px;color:var(--muted);margin:8px 0"></div>
@@ -387,13 +395,16 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
     </div>
     <div class="row" style="margin-top:10px">
       <button id="review-show">显示答案</button>
-      <span id="review-grade" class="hidden" style="display:flex;gap:8px">
-        <button id="review-good" class="primary">✓ 记住了</button>
-        <button id="review-bad" class="danger">✗ 没记住</button>
-        <button id="review-skip">跳过</button>
+      <span id="review-grade" class="hidden grade-btns">
+        <button class="grade-btn again" data-grade="again">✗ 忘记<small id="gi-again">当天重排</small></button>
+        <button class="grade-btn hard" data-grade="hard">△ 困难<small id="gi-hard">—</small></button>
+        <button class="grade-btn good" data-grade="good">✓ 记得<small id="gi-good">—</small></button>
+        <button class="grade-btn easy" data-grade="easy">★ 简单<small id="gi-easy">—</small></button>
       </span>
+      <button id="review-skip">跳过</button>
     </div>
-    <div id="review-done" class="empty-tip hidden">本轮复习完毕：共 <b id="review-total">0</b> 题，记住了 <b id="review-good-count">0</b> 题，没记住 <b id="review-bad-count">0</b> 题，跳过 <b id="review-skip-count">0</b> 题。已按间隔重复算法安排后续复习计划。</div>
+    <p class="review-hint">自评四档按 SM-2 算法计算下次复习间隔：忘记＝当天重排并降低难度系数，困难／记得／简单＝按难度系数递增。快捷键：空格显示答案，1／2／3／4 对应忘记／困难／记得／简单。</p>
+    <div id="review-done" class="empty-tip hidden">本轮复习完毕：共 <b id="review-total">0</b> 题，忘记 <b id="review-again-count">0</b> 题，困难 <b id="review-hard-count">0</b> 题，记得 <b id="review-good-count">0</b> 题，简单 <b id="review-easy-count">0</b> 题，跳过 <b id="review-skip-count">0</b> 题。已按 SM-2 算法安排后续复习计划。</div>
   </section>
 </main>
 
@@ -410,7 +421,7 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
 
 <footer>
   个人错题仍保存在当前浏览器中，建议定期导出备份；也可将选中的错题及已填写的答案整理后，通过浏览器保存为 PDF。PDF 仅供阅读和打印，不替代可恢复数据的备份文件。内置题库随当前页面版本提供，离线可用，但不会在关闭或打开页面时自行增加新题；更新题库需要取得有权使用、可核实的题目后发布新版页面。AI 问答为可选功能，配置可用服务后需要联网；未配置或服务不可用时，本地错题、题库和 PDF 导出功能照常使用。本项目只提供 Web 版；溯源器源码与网站一同存放在该项目的 GitHub 仓库中，并按项目许可开源，第三方试题的使用权限另行遵守。
-  <p style="margin-top:8px">版本：v1.4.0 · 同类练习题生成 · 复习热力图 · 间隔重复复习 · 可选代理模板见仓库 <code>proxy/</code> 目录 · <a href="https://github.com/uahz/gaokao-error-tracer">GitHub</a></p>
+  <p style="margin-top:8px">版本：v1.5.0 · SM-2 四档自评复习 · 备份格式自动迁移 · 同类练习题 · 热力图 · <a href="https://github.com/uahz/gaokao-error-tracer">GitHub</a></p>
 </footer>
 
 <script>
@@ -437,17 +448,32 @@ const AI_CFG_KEY  = "gd2026_tracer_ai_cfg_v2";  // 仅存接口地址与模型�
 const REVIEW_LOG_KEY = "gd2026_tracer_review_log_v1";  // 复习打卡：{ "YYYY-MM-DD": {good:n, bad:n} }
 
 /* ---------- 复习打卡记录（供热力图使用，仅本机） ---------- */
+/* 结构：{ "YYYY-MM-DD": {again:n, hard:n, good:n, easy:n} }
+ * 早期版本只记 good/bad，读取时自动换算（bad → again），保证旧数据不丢 */
 let reviewLog = {};
 try { reviewLog = JSON.parse(localStorage.getItem(REVIEW_LOG_KEY) || "{}") || {}; } catch(e){ reviewLog = {}; }
 if (typeof reviewLog !== "object" || Array.isArray(reviewLog)) reviewLog = {};
+
+function normalizeLogRec(r){
+  r = (r && typeof r === "object") ? r : {};
+  return {
+    again: Number(r.again != null ? r.again : r.bad) || 0,
+    hard: Number(r.hard) || 0,
+    good: Number(r.good) || 0,
+    easy: Number(r.easy) || 0
+  };
+}
+function logTotal(rec){
+  return rec.again + rec.hard + rec.good + rec.easy;
+}
 function saveReviewLog(){
   try { localStorage.setItem(REVIEW_LOG_KEY, JSON.stringify(reviewLog)); } catch(e){}
 }
-function logReview(goodInc, badInc){
+function logReview(gradeKey){
   const key = todayISO();
-  const rec = reviewLog[key] || {good:0, bad:0};
-  rec.good += goodInc;
-  rec.bad += badInc;
+  const rec = normalizeLogRec(reviewLog[key]);
+  if (rec[gradeKey] == null) return;
+  rec[gradeKey] += 1;
   reviewLog[key] = rec;
   saveReviewLog();
 }
@@ -571,7 +597,8 @@ function renderErrors(){
           '<div class="err-meta">' +
             (e.source ? '来源：' + escapeHtml(e.source) + '　' : '') +
             (e.note ? '错因：' + escapeHtml(e.note) + '　' : '') +
-            '<span>[' + escapeHtml(reviewLabel(e)) + (e.due ? ' · 计划 ' + escapeHtml(e.due) : '') + ']</span>' +
+            '<span>[' + escapeHtml(reviewLabel(e)) + (e.due ? ' · 计划 ' + escapeHtml(e.due) : '') +
+              ' · EF ' + reviewState(e).ef.toFixed(2) + ']</span>' +
           '</div>' +
         '</div>' +
         '<button class="danger err-del">删除</button>' +
@@ -707,12 +734,23 @@ document.getElementById("pdf-print").addEventListener("click", function(){
   window.print();  // 浏览器本地打印，内容不离开本机
 });
 
-/* ---------- 复习（间隔重复 / Leitner 盒子法，纯本地） ---------- */
-/* 盒子 0-5 对应的复习间隔天数：记住进一轮，间隔递增；没记住重置到第 1 轮 */
-const REVIEW_INTERVALS_DAYS = [0, 1, 2, 4, 7, 15];
+/* ---------- 复习（SM-2 间隔重复算法，纯本地） ----------
+ * 四档自评映射到 SM-2 的质量分：忘记 q=1 / 困难 q=3 / 记得 q=4 / 简单 q=5。
+ * 每条错题保存的状态字段：
+ *   reps      连续记住次数（忘记后归零）
+ *   interval  当前间隔天数（0 表示当天重排）
+ *   ef        难度系数 EF（1.3 ~ 2.8，越大说明越容易）
+ *   lapses    遗忘次数
+ *   lastGrade 上次自评档位
+ *   due       下次复习日期 YYYY-MM-DD
+ */
+const SM2_GRADE_Q = {again:1, hard:3, good:4, easy:5};
+const SM2_MIN_EF = 1.3, SM2_MAX_EF = 2.8, SM2_MAX_INTERVAL = 365;
+const LEGACY_BOX_DAYS = [0, 1, 2, 4, 7, 15];   // v1.4 及更早版本 Leitner 盒子的间隔天数
 const reviewSection = document.getElementById("review-section");
 let reviewQueue = [], reviewIdx = 0;
-let reviewGood = 0, reviewBad = 0, reviewSkip = 0;
+let reviewCounts = {again:0, hard:0, good:0, easy:0, skip:0};
+const againReadded = new Set();   // 本轮内“忘记”的题只重排一次，避免死循环
 
 function dateKey(d){
   const pad = function(n){ return String(n).padStart(2, "0"); };
@@ -726,9 +764,57 @@ function dueAfterDays(days){
   const pad = function(n){ return String(n).padStart(2, "0"); };
   return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
 }
+
+/* 读取复习状态；缺失字段时按旧版 Leitner 盒子（box）换算，实现老数据无缝迁移 */
+function reviewState(e){
+  let reps = (Number.isInteger(e.reps) && e.reps >= 0) ? e.reps : null;
+  let interval = (Number.isInteger(e.interval) && e.interval >= 0) ? e.interval : null;
+  let ef = (typeof e.ef === "number" && isFinite(e.ef)) ? e.ef : null;
+  if (reps === null || interval === null || ef === null){
+    const box = (Number.isInteger(e.box) && e.box >= 0 && e.box <= 5) ? e.box : 0;
+    if (reps === null) reps = box;
+    if (interval === null) interval = LEGACY_BOX_DAYS[box];
+    if (ef === null) ef = 2.5;
+  }
+  return {
+    reps: reps,
+    interval: interval,
+    ef: Math.min(SM2_MAX_EF, Math.max(SM2_MIN_EF, Math.round(ef * 100) / 100)),
+    lapses: (Number.isInteger(e.lapses) && e.lapses >= 0) ? e.lapses : 0,
+    lastGrade: typeof e.lastGrade === "string" ? e.lastGrade : "",
+    due: e.due
+  };
+}
+
+/* 按 SM-2 推进状态，返回新状态（不直接改原对象，便于预览间隔） */
+function sm2Next(st, gradeKey){
+  const q = SM2_GRADE_Q[gradeKey] || 4;
+  // SM-2 难度系数公式：EF' = EF + (0.1 - (5-q) * (0.08 + (5-q) * 0.02))
+  let ef = st.ef + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02));
+  ef = Math.min(SM2_MAX_EF, Math.max(SM2_MIN_EF, Math.round(ef * 100) / 100));
+  let reps = st.reps, interval = st.interval, lapses = st.lapses;
+  if (q < 3){
+    reps = 0; interval = 0; lapses += 1;        // 忘记：当天重排、难度下调
+  } else {
+    reps += 1;
+    if (reps === 1) interval = 1;
+    else if (reps === 2) interval = 6;
+    else interval = Math.max(1, Math.round(interval * ef));
+    if (gradeKey === "hard") interval = Math.max(1, Math.round(interval * 0.6));
+    if (gradeKey === "easy") interval = Math.round(interval * 1.3);
+  }
+  interval = Math.max(0, Math.min(interval, SM2_MAX_INTERVAL));
+  return {
+    reps: reps, interval: interval, ef: ef, lapses: lapses, lastGrade: gradeKey,
+    due: interval === 0 ? todayISO() : dueAfterDays(interval)
+  };
+}
+
 function reviewLabel(e){
-  if (typeof e.box !== "number") return "新题";
-  return e.box === 0 ? "第1轮（待巩固）" : "第" + (e.box + 1) + "轮";
+  const st = reviewState(e);
+  if (!st.lastGrade && !st.reps && !st.interval) return "未复习";
+  if (st.interval === 0) return "当天重排";
+  return "间隔 " + st.interval + " 天";
 }
 
 function buildReviewQueue(forceAll){
@@ -751,7 +837,9 @@ document.getElementById("err-review").addEventListener("click", function(){
     queue = buildReviewQueue(true);
   }
   reviewQueue = queue;
-  reviewIdx = 0; reviewGood = 0; reviewBad = 0; reviewSkip = 0;
+  reviewIdx = 0;
+  reviewCounts = {again:0, hard:0, good:0, easy:0, skip:0};
+  againReadded.clear();
   reviewSection.classList.remove("hidden");
   reviewSection.scrollIntoView({behavior:"smooth"});
   showReviewItem();
@@ -772,9 +860,11 @@ function showReviewItem(){
     showBtn.disabled = true;
     done.classList.remove("hidden");
     document.getElementById("review-total").textContent = reviewQueue.length;
-    document.getElementById("review-good-count").textContent = reviewGood;
-    document.getElementById("review-bad-count").textContent = reviewBad;
-    document.getElementById("review-skip-count").textContent = reviewSkip;
+    document.getElementById("review-again-count").textContent = reviewCounts.again;
+    document.getElementById("review-hard-count").textContent = reviewCounts.hard;
+    document.getElementById("review-good-count").textContent = reviewCounts.good;
+    document.getElementById("review-easy-count").textContent = reviewCounts.easy;
+    document.getElementById("review-skip-count").textContent = reviewCounts.skip;
     return;
   }
   showBtn.disabled = false;
@@ -784,50 +874,81 @@ function showReviewItem(){
   answer.innerHTML = "<b>答案：</b>" + escapeHtml(e.answer || "（未填写答案）") +
     (e.mine ? "<br><b>我的作答：</b>" + escapeHtml(e.mine) : "") +
     (e.note ? "<br><b>错因：</b>" + escapeHtml(e.note) : "");
+  const st = reviewState(e);
   document.getElementById("review-progress").textContent =
     "第 " + (reviewIdx + 1) + " / " + reviewQueue.length + " 题 · 当前 " + reviewLabel(e) +
+    " · EF " + st.ef.toFixed(2) + " · 已遗忘 " + st.lapses + " 次" +
     (e.due ? " · 计划日期 " + e.due : "");
+  /* 四档按钮上实时显示“选这一档后下次间隔”，选择前就能看到后果 */
+  ["again","hard","good","easy"].forEach(function(g){
+    const next = sm2Next(st, g);
+    setText("gi-" + g, next.interval === 0 ? "当天重排" : next.interval + " 天");
+  });
 }
 
-/* 自评打分：记住 → 盒子进一轮、间隔拉长；没记住 → 重置回第 1 轮、当天再排 */
-function gradeCurrent(remembered){
+/* 自评四档：按 SM-2 推进状态并落盘（只改当前错题，不影响其他数据） */
+function gradeCurrent(gradeKey){
   const e = reviewQueue[reviewIdx];
   if (!e) return;
-  if (remembered){
-    e.box = Math.min((typeof e.box === "number" ? e.box : 0) + 1, 5);
-    e.due = dueAfterDays(REVIEW_INTERVALS_DAYS[e.box]);
-    reviewGood++;
-  } else {
-    e.box = 0;
-    e.due = todayISO();
-    reviewBad++;
-  }
-  logReview(remembered ? 1 : 0, remembered ? 0 : 1);   // 更新复习打卡（供热力图）
+  const next = sm2Next(reviewState(e), gradeKey);
+  e.reps = next.reps;
+  e.interval = next.interval;
+  e.ef = next.ef;
+  e.lapses = next.lapses;
+  e.lastGrade = next.lastGrade;
+  e.due = next.due;
+  delete e.box;              // 清理旧版 Leitner 字段，避免与新状态并存
+  reviewCounts[gradeKey] = (reviewCounts[gradeKey] || 0) + 1;
+  logReview(gradeKey);       // 更新复习打卡（供热力图）
   saveErrors();
-  renderErrors();   // 同步刷新统计与列表徽标
+  renderErrors();            // 同步刷新统计与列表徽标
+  if (gradeKey === "again" && !againReadded.has(e.id)){
+    againReadded.add(e.id);
+    reviewQueue.push(e);     // 忘记的题在本轮末尾再出现一次
+  }
 }
 document.getElementById("review-show").addEventListener("click", function(){
   document.getElementById("review-answer").classList.remove("hidden");
   document.getElementById("review-show").classList.add("hidden");
   document.getElementById("review-grade").classList.remove("hidden");
 });
-document.getElementById("review-good").addEventListener("click", function(){
-  gradeCurrent(true);
-  reviewIdx++;
-  showReviewItem();
-});
-document.getElementById("review-bad").addEventListener("click", function(){
-  gradeCurrent(false);
-  reviewIdx++;
-  showReviewItem();
+Array.prototype.forEach.call(document.querySelectorAll("#review-grade .grade-btn"), function(btn){
+  btn.addEventListener("click", function(){
+    gradeCurrent(btn.getAttribute("data-grade"));
+    reviewIdx++;
+    showReviewItem();
+  });
 });
 document.getElementById("review-skip").addEventListener("click", function(){
-  reviewSkip++;
+  reviewCounts.skip++;
   reviewIdx++;
   showReviewItem();
 });
 document.getElementById("review-exit").addEventListener("click", function(){
   reviewSection.classList.add("hidden");
+});
+
+/* 复习快捷键：空格显示答案，1/2/3/4 对应四档自评 */
+document.addEventListener("keydown", function(ev){
+  if (reviewSection.classList.contains("hidden")) return;
+  const tag = (ev.target && ev.target.tagName) || "";
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+  const gradeShown = !document.getElementById("review-grade").classList.contains("hidden");
+  if (ev.key === " " || ev.key === "Enter"){
+    if (!gradeShown){
+      ev.preventDefault();
+      document.getElementById("review-show").click();
+    }
+    return;
+  }
+  if (!gradeShown) return;
+  const map = {"1":"again", "2":"hard", "3":"good", "4":"easy"};
+  if (map[ev.key]){
+    ev.preventDefault();
+    gradeCurrent(map[ev.key]);
+    reviewIdx++;
+    showReviewItem();
+  }
 });
 
 /* ---------- 统计（纯本地渲染） ---------- */
@@ -872,10 +993,15 @@ function renderStats(){
   const today = todayISO();
   const dueCount = errors.filter(function(e){ return !e.due || e.due <= today; }).length;
   const answered = errors.filter(function(e){ return !!e.answer; }).length;
+  const states = errors.map(reviewState);
+  const efAvg = states.length
+    ? states.reduce(function(s, st){ return s + st.ef; }, 0) / states.length : 0;
+  const lapsesTotal = states.reduce(function(s, st){ return s + st.lapses; }, 0);
   overview.innerHTML =
     "总错题：<b>" + errors.length + "</b>　" +
     "今日待复习：<b>" + dueCount + "</b>　" +
     "已填答案：<b>" + answered + "</b>　未填答案：<b>" + (errors.length - answered) + "</b>　" +
+    "平均 EF：<b>" + efAvg.toFixed(2) + "</b>　累计遗忘：<b>" + lapsesTotal + "</b> 次　" +
     "<span style=\"font-size:12px\">（统计仅基于本机数据，不参与任何上传）</span>";
 
   barChart("stat-subject", groupCount(errors, function(e){ return e.subject; }).slice(0, 10));
@@ -889,16 +1015,19 @@ function renderStats(){
   });
   barChart("stat-note", notes);
 
-  const boxMap = {};
-  errors.forEach(function(e){
-    const k = reviewLabel(e);
-    boxMap[k] = (boxMap[k] || 0) + 1;
-  });
-  const boxOrder = ["新题", "第1轮（待巩固）", "第2轮", "第3轮", "第4轮", "第5轮", "第6轮"];
-  const boxEntries = boxOrder
-    .filter(function(k){ return boxMap[k]; })
-    .map(function(k){ return {label:k, count:boxMap[k]}; });
-  barChart("stat-box", boxEntries);
+  /* 复习间隔分布（SM-2）：按当前 interval 分桶，直观看出记忆固化程度 */
+  const buckets = [
+    {label: "未复习", test: function(st){ return !st.lastGrade && !st.reps && !st.interval; }},
+    {label: "当天重排", test: function(st){ return !!st.lastGrade && st.interval === 0; }},
+    {label: "1 天", test: function(st){ return st.interval === 1; }},
+    {label: "2–6 天", test: function(st){ return st.interval >= 2 && st.interval <= 6; }},
+    {label: "7–29 天", test: function(st){ return st.interval >= 7 && st.interval <= 29; }},
+    {label: "30 天以上", test: function(st){ return st.interval >= 30; }}
+  ];
+  const bucketEntries = buckets.map(function(b){
+    return {label: b.label, count: states.filter(b.test).length};
+  }).filter(function(b){ return b.count > 0; });
+  barChart("stat-box", bucketEntries);
 
   renderHeatmap();
 }
@@ -914,14 +1043,14 @@ function renderHeatmap(){
   const cells = [];
   for (let i = 0; i <= startOffset; i++){
     const d = new Date(today.getTime() - (startOffset - i) * 86400000);
-    const rec = reviewLog[dateKey(d)];
-    const good = rec ? rec.good : 0;
-    const bad = rec ? rec.bad : 0;
-    const n = good + bad;
+    const rec = reviewLog[dateKey(d)] ? normalizeLogRec(reviewLog[dateKey(d)]) : null;
+    const n = rec ? logTotal(rec) : 0;
     total += n;
     const level = n === 0 ? 0 : (n <= 2 ? 1 : (n <= 5 ? 2 : (n <= 10 ? 3 : 4)));
     const label = (d.getMonth() + 1) + "月" + d.getDate() + "日" +
-      (n ? "：记住 " + good + "，没记住 " + bad : "：无复习记录");
+      (n
+        ? "：记得 " + (rec.good + rec.easy) + "，困难 " + rec.hard + "，忘记 " + rec.again
+        : "：无复习记录");
     cells.push('<span class="heat heat-' + level + '" title="' + escapeHtml(label) + '"></span>');
   }
   el.innerHTML = cells.join("");
@@ -930,11 +1059,104 @@ function renderHeatmap(){
     : "还没有复习记录：完成一次复习后，这里会出现打卡方块";
 }
 
-/* ---------- 备份（与 PDF 导出相互独立） ---------- */
+/* ---------- 备份（与 PDF 导出相互独立） ----------
+ * 备份格式版本：3（当前）
+ *   v1：最早的备份是纯错题数组，无版本号
+ *   v2：{version:2, errors, reviewLog}，复习状态用 Leitner 盒子（box）
+ *   v3：错题改用 SM-2 状态（reps / interval / ef / lapses / lastGrade / due），
+ *       打卡记录扩展为四档 {again, hard, good, easy}
+ * 导入时按版本链式迁移，旧备份不会失效；未知的新版本尽力导入并提示。
+ */
+const BACKUP_VERSION = 3;
+
+const BACKUP_MIGRATIONS = {
+  1: function(b){
+    return {
+      version: 2, errors: b.errors, reviewLog: b.reviewLog,
+      notes: b.notes.concat("v1 → v2：为无版本号的旧备份补全结构")
+    };
+  },
+  2: function(b){
+    let converted = 0;
+    const items = b.errors.map(function(e){
+      if (!e || typeof e !== "object" || typeof e.reps === "number") return e;
+      const box = (Number.isInteger(e.box) && e.box >= 0 && e.box <= 5) ? e.box : 0;
+      converted++;
+      return Object.assign({}, e, {
+        reps: box,
+        interval: LEGACY_BOX_DAYS[box],
+        ef: 2.5,
+        lapses: 0,
+        lastGrade: box > 0 ? "good" : ""
+      });
+    });
+    const log = {};
+    let logKeys = 0;
+    if (b.reviewLog && typeof b.reviewLog === "object" && !Array.isArray(b.reviewLog)){
+      Object.keys(b.reviewLog).forEach(function(k){ log[k] = normalizeLogRec(b.reviewLog[k]); logKeys++; });
+    }
+    const notes = b.notes.concat("v2 → v3：Leitner 盒子换算为 SM-2 状态，共 " + converted + " 题");
+    if (logKeys) notes.push("v2 → v3：复习打卡扩展为四档，旧的“没记住”记为“忘记”");
+    return {version: 3, errors: items, reviewLog: log, notes: notes};
+  }
+};
+
+/* 解析任意版本的备份，返回 {version, errors, reviewLog, notes} */
+function parseBackup(data){
+  let b;
+  if (Array.isArray(data)){
+    b = {version: 1, errors: data, reviewLog: null, notes: []};
+  } else if (data && typeof data === "object" && Array.isArray(data.errors)){
+    b = {
+      version: (Number.isInteger(data.version) && data.version > 0) ? data.version : 1,
+      errors: data.errors,
+      reviewLog: (data.reviewLog && typeof data.reviewLog === "object" && !Array.isArray(data.reviewLog))
+        ? data.reviewLog : null,
+      notes: []
+    };
+  } else {
+    throw new Error("bad");
+  }
+  if (b.version > BACKUP_VERSION){
+    b.notes = b.notes.concat("备份来自更新的版本 v" + b.version + "，将尽力导入，无法识别的字段会被忽略");
+  } else {
+    while (b.version < BACKUP_VERSION && BACKUP_MIGRATIONS[b.version]){
+      b = BACKUP_MIGRATIONS[b.version](b);
+    }
+  }
+  return b;
+}
+
+/* 单条错题归一化（含 SM-2 状态），导出与导入共用同一套字段定义 */
+function normalizeErrorRecord(e){
+  const st = reviewState(e);
+  return {
+    id: (typeof e.id === "string" && e.id) ? e.id : newId(),
+    subject: String(e.subject || ""), year: String(e.year || ""),
+    exam: String(e.exam || ""), source: String(e.source || ""),
+    stem: String(e.stem || "").trim(),
+    answer: typeof e.answer === "string" ? e.answer : "",
+    mine: typeof e.mine === "string" ? e.mine : "",
+    note: typeof e.note === "string" ? e.note : "",
+    savedAt: typeof e.savedAt === "string" ? e.savedAt : "",
+    reps: st.reps, interval: st.interval, ef: st.ef, lapses: st.lapses,
+    lastGrade: st.lastGrade,
+    due: (typeof st.due === "string" && /^\d{4}-\d{2}-\d{2}$/.test(st.due)) ? st.due : undefined
+  };
+}
+
 document.getElementById("err-backup-export").addEventListener("click", function(){
   if (!errors.length){ alert("当前没有错题数据可备份。"); return; }
-  const blob = new Blob([JSON.stringify({version:2, exportedAt:new Date().toISOString(), errors:errors, reviewLog:reviewLog}, null, 2)],
-    {type:"application/json"});
+  const log = {};
+  Object.keys(reviewLog).forEach(function(k){ log[k] = normalizeLogRec(reviewLog[k]); });
+  const payload = {
+    app: "gaokao-error-tracer",
+    version: BACKUP_VERSION,
+    exportedAt: new Date().toISOString(),
+    errors: errors.map(normalizeErrorRecord),
+    reviewLog: log
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "错题备份-" + new Date().toISOString().slice(0,10) + ".json";
@@ -950,43 +1172,36 @@ document.getElementById("err-backup-import").addEventListener("change", function
   const reader = new FileReader();
   reader.onload = function(){
     try {
-      const data = JSON.parse(reader.result);
-      const incoming = Array.isArray(data) ? data : data.errors;
-      if (!Array.isArray(incoming)) throw new Error("bad");
-      const valid = incoming.filter(function(e){
-        return e && typeof e.stem === "string" && e.stem.trim();
-      }).map(function(e){
-        return {
-          id: typeof e.id === "string" ? e.id : newId(),
-          subject: String(e.subject || ""), year: String(e.year || ""),
-          exam: String(e.exam || ""), source: String(e.source || ""),
-          stem: e.stem.trim(),
-          answer: typeof e.answer === "string" ? e.answer : "",
-          mine: typeof e.mine === "string" ? e.mine : "",
-          note: typeof e.note === "string" ? e.note : "",
-          savedAt: typeof e.savedAt === "string" ? e.savedAt : "",
-          box: (Number.isInteger(e.box) && e.box >= 0 && e.box <= 5) ? e.box : undefined,
-          due: typeof e.due === "string" && /^\d{4}-\d{2}-\d{2}$/.test(e.due) ? e.due : undefined
-        };
-      });
+      const parsed = parseBackup(JSON.parse(reader.result));
+      const valid = parsed.errors
+        .filter(function(e){ return e && typeof e.stem === "string" && e.stem.trim(); })
+        .map(normalizeErrorRecord);
       if (!valid.length) throw new Error("empty");
-      if (!confirm("将合并导入 " + valid.length + " 条错题（与现有数据合并，不会清空已有错题），继续吗？")) return;
+      const msg = (parsed.notes.length
+          ? "备份格式已自动迁移：\n· " + parsed.notes.join("\n· ") + "\n\n" : "") +
+        "将合并导入 " + valid.length + " 条错题（与现有数据合并，不会清空已有错题），继续吗？";
+      if (!confirm(msg)) return;
       const ids = new Set(errors.map(function(e){ return e.id; }));
       valid.forEach(function(e){ if (!ids.has(e.id)) errors.push(e); });
-      if (data.reviewLog && typeof data.reviewLog === "object" && !Array.isArray(data.reviewLog)){
-        Object.keys(data.reviewLog).forEach(function(k){
-          const rec = data.reviewLog[k];
-          if (!rec || typeof rec !== "object") return;
-          const cur = reviewLog[k] || {good:0, bad:0};
-          cur.good += (Number(rec.good) || 0);
-          cur.bad += (Number(rec.bad) || 0);
+      let logMerged = 0;
+      if (parsed.reviewLog){
+        Object.keys(parsed.reviewLog).forEach(function(k){
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(k)) return;
+          const rec = normalizeLogRec(parsed.reviewLog[k]);
+          const cur = normalizeLogRec(reviewLog[k]);
+          cur.again += rec.again;
+          cur.hard += rec.hard;
+          cur.good += rec.good;
+          cur.easy += rec.easy;
           reviewLog[k] = cur;
+          logMerged += logTotal(rec);
         });
-        saveReviewLog();
+        if (logMerged) saveReviewLog();
       }
       saveErrors();
       renderErrors();
-      alert("导入完成。");
+      alert("导入完成：" + valid.length + " 条错题" +
+        (logMerged ? "，" + logMerged + " 条复习打卡记录" : "") + "。");
     } catch(err){
       alert("导入失败：文件不是有效的备份 JSON。");
     }

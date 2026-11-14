@@ -138,6 +138,15 @@ button:disabled{opacity:.5;cursor:not-allowed}
   .pdf-toolbar{display:none !important}
 }
 footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
+
+/* ===== 统计图（纯本地渲染） ===== */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;margin-top:6px}
+@media (max-width:640px){.stat-grid{grid-template-columns:1fr}}
+.bar-row{display:flex;align-items:center;gap:8px;font-size:13px;margin:5px 0}
+.bar-label{flex:0 0 84px;color:var(--muted);text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar-track{flex:1;background:#f3f4f6;border-radius:4px;height:14px;overflow:hidden}
+.bar-fill{display:block;height:100%;background:var(--brand);border-radius:4px}
+.bar-count{flex:0 0 40px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -222,6 +231,31 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
     <div class="chat-loading hidden" id="ai-loading">正在请求 AI 服务…</div>
   </section>
 
+  <!-- ==================== 统计与复习计划 ==================== -->
+  <section class="card" id="stats-section">
+    <h2>统计与复习计划</h2>
+    <div class="stats" id="stats-overview"></div>
+    <div class="stat-grid">
+      <div>
+        <h3>按科目</h3>
+        <div id="stat-subject"></div>
+      </div>
+      <div>
+        <h3>按年份</h3>
+        <div id="stat-year"></div>
+      </div>
+      <div>
+        <h3>错因 TOP5</h3>
+        <div id="stat-note"></div>
+      </div>
+      <div>
+        <h3>复习掌握度（Leitner 盒子）</h3>
+        <div id="stat-box"></div>
+      </div>
+    </div>
+    <div class="empty-tip" id="stats-empty">暂无错题数据。录入错题后，这里会显示分布统计和今日待复习数量。</div>
+  </section>
+
   <!-- ==================== 个人错题 ==================== -->
   <section class="card" id="errors-section">
     <h2>个人错题</h2>
@@ -280,10 +314,33 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
       <h3 style="margin:0" class="grow">已存错题（<span id="err-count">0</span>）</h3>
     </div>
     <div class="row" style="margin-top:6px">
-      <div class="grow">
-        <label for="err-filter">筛选（关键词 / 科目 / 年份）</label>
-        <input type="text" id="err-filter" placeholder="筛选已存错题">
+      <div class="grow" style="min-width:170px">
+        <label for="err-filter">关键词</label>
+        <input type="text" id="err-filter" placeholder="搜索题目 / 答案 / 笔记">
       </div>
+      <div style="width:120px">
+        <label for="err-filter-subject">科目</label>
+        <select id="err-filter-subject">
+          <option value="">全部</option>
+          <option>语文</option><option>数学</option><option>英语</option>
+          <option>物理</option><option>历史</option><option>化学</option>
+          <option>生物</option><option>思想政治</option><option>地理</option>
+          <option>其他</option>
+        </select>
+      </div>
+      <div style="width:96px">
+        <label for="err-filter-year">年份</label>
+        <input type="text" id="err-filter-year" placeholder="如 2026">
+      </div>
+      <div style="width:120px">
+        <label for="err-filter-answer">答案状态</label>
+        <select id="err-filter-answer">
+          <option value="">全部</option>
+          <option value="yes">已填答案</option>
+          <option value="no">未填答案</option>
+        </select>
+      </div>
+    </div>
       <div style="align-self:flex-end">
         <button id="err-select-all">全选当前筛选结果</button>
         <button id="err-select-none">取消选择</button>
@@ -301,10 +358,10 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
     <div class="empty-tip hidden" id="err-empty">还没有保存任何错题。在上面录入后，错题只会保存在当前浏览器中。</div>
   </section>
 
-  <!-- ==================== 复习模式 ==================== -->
+  <!-- ==================== 复习模式（间隔重复） ==================== -->
   <section class="card hidden" id="review-section">
     <div class="row">
-      <h2 style="margin:0" class="grow">复习模式</h2>
+      <h2 style="margin:0" class="grow">复习模式（间隔重复）</h2>
       <button id="review-exit">退出复习</button>
     </div>
     <div id="review-progress" style="font-size:13px;color:var(--muted);margin:8px 0"></div>
@@ -314,9 +371,13 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
     </div>
     <div class="row" style="margin-top:10px">
       <button id="review-show">显示答案</button>
-      <button id="review-next" class="primary">下一题</button>
+      <span id="review-grade" class="hidden" style="display:flex;gap:8px">
+        <button id="review-good" class="primary">✓ 记住了</button>
+        <button id="review-bad" class="danger">✗ 没记住</button>
+        <button id="review-skip">跳过</button>
+      </span>
     </div>
-    <div id="review-done" class="empty-tip hidden">本轮复习完毕，共复习 <b id="review-total">0</b> 道错题。</div>
+    <div id="review-done" class="empty-tip hidden">本轮复习完毕：共 <b id="review-total">0</b> 题，记住了 <b id="review-good-count">0</b> 题，没记住 <b id="review-bad-count">0</b> 题，跳过 <b id="review-skip-count">0</b> 题。已按间隔重复算法安排后续复习计划。</div>
   </section>
 </main>
 
@@ -333,7 +394,7 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
 
 <footer>
   个人错题仍保存在当前浏览器中，建议定期导出备份；也可将选中的错题及已填写的答案整理后，通过浏览器保存为 PDF。PDF 仅供阅读和打印，不替代可恢复数据的备份文件。内置题库随当前页面版本提供，离线可用，但不会在关闭或打开页面时自行增加新题；更新题库需要取得有权使用、可核实的题目后发布新版页面。AI 问答为可选功能，配置可用服务后需要联网；未配置或服务不可用时，本地错题、题库和 PDF 导出功能照常使用。本项目只提供 Web 版；溯源器源码与网站一同存放在该项目的 GitHub 仓库中，并按项目许可开源，第三方试题的使用权限另行遵守。
-  <p style="margin-top:8px">版本：v1.2.1 · 可选代理模板见仓库 <code>proxy/</code> 目录 · <a href="https://github.com/uahz/gaokao-error-tracer">GitHub</a></p>
+  <p style="margin-top:8px">版本：v1.3.0 · 间隔重复复习 · 错题统计 · 多条件检索 · 可选代理模板见仓库 <code>proxy/</code> 目录 · <a href="https://github.com/uahz/gaokao-error-tracer">GitHub</a></p>
 </footer>
 
 <script>
@@ -447,12 +508,20 @@ function renderErrors(){
   const list = document.getElementById("err-list");
   const empty = document.getElementById("err-empty");
   const kw = document.getElementById("err-filter").value.trim().toLowerCase();
+  const fSubject = document.getElementById("err-filter-subject").value;
+  const fYear = document.getElementById("err-filter-year").value.trim();
+  const fAnswer = document.getElementById("err-filter-answer").value;
   document.getElementById("err-count").textContent = errors.length;
 
-  const filtered = kw ? errors.filter(function(e){
-    return [e.stem, e.answer, e.mine, e.note, e.subject, e.exam, e.source, e.year]
-      .join(" ").toLowerCase().indexOf(kw) !== -1;
-  }) : errors;
+  const filtered = errors.filter(function(e){
+    if (kw && [e.stem, e.answer, e.mine, e.note, e.subject, e.exam, e.source, e.year]
+        .join(" ").toLowerCase().indexOf(kw) === -1) return false;
+    if (fSubject && (e.subject || "") !== fSubject) return false;
+    if (fYear && String(e.year || "") !== fYear) return false;
+    if (fAnswer === "yes" && !e.answer) return false;
+    if (fAnswer === "no" && e.answer) return false;
+    return true;
+  });
 
   empty.classList.toggle("hidden", errors.length > 0);
   list.innerHTML = filtered.map(function(e){
@@ -468,15 +537,23 @@ function renderErrors(){
           '<div class="err-body">' + escapeHtml(e.stem) + '</div>' +
           '<div class="err-meta">' +
             (e.source ? '来源：' + escapeHtml(e.source) + '　' : '') +
-            (e.note ? '错因：' + escapeHtml(e.note) : '') +
+            (e.note ? '错因：' + escapeHtml(e.note) + '　' : '') +
+            '<span>[' + escapeHtml(reviewLabel(e)) + (e.due ? ' · 计划 ' + escapeHtml(e.due) : '') + ']</span>' +
           '</div>' +
         '</div>' +
         '<button class="danger err-del">删除</button>' +
       '</div>' +
     '</div>';
   }).join("");
+  renderStats();
   syncAiAttachState();
 }
+["err-filter","err-filter-year"].forEach(function(id){
+  document.getElementById(id).addEventListener("input", renderErrors);
+});
+["err-filter-subject","err-filter-answer"].forEach(function(id){
+  document.getElementById(id).addEventListener("change", renderErrors);
+});
 
 /* 录入 */
 function readErrForm(){
@@ -597,32 +674,75 @@ document.getElementById("pdf-print").addEventListener("click", function(){
   window.print();  // 浏览器本地打印，内容不离开本机
 });
 
-/* ---------- 复习 ---------- */
-let reviewQueue = [], reviewIdx = 0, reviewShownTotal = 0;
+/* ---------- 复习（间隔重复 / Leitner 盒子法，纯本地） ---------- */
+/* 盒子 0-5 对应的复习间隔天数：记住进一轮，间隔递增；没记住重置到第 1 轮 */
+const REVIEW_INTERVALS_DAYS = [0, 1, 2, 4, 7, 15];
 const reviewSection = document.getElementById("review-section");
+let reviewQueue = [], reviewIdx = 0;
+let reviewGood = 0, reviewBad = 0, reviewSkip = 0;
+
+function todayISO(){
+  const d = new Date();
+  const pad = function(n){ return String(n).padStart(2, "0"); };
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+}
+function dueAfterDays(days){
+  const d = new Date(Date.now() + days * 86400000);
+  const pad = function(n){ return String(n).padStart(2, "0"); };
+  return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+}
+function reviewLabel(e){
+  if (typeof e.box !== "number") return "新题";
+  return e.box === 0 ? "第1轮（待巩固）" : "第" + (e.box + 1) + "轮";
+}
+
+function buildReviewQueue(forceAll){
+  const today = todayISO();
+  const pool = errors.filter(function(e){
+    return forceAll || !e.due || e.due <= today;
+  });
+  pool.sort(function(a, b){
+    const da = a.due || "0000-00-00", db = b.due || "0000-00-00";
+    return da < db ? -1 : (da > db ? 1 : 0);
+  });
+  return pool;
+}
 
 document.getElementById("err-review").addEventListener("click", function(){
-  const pool = errors.length ? errors : [];
-  if (!pool.length){ alert("当前没有可复习的错题，请先录入。"); return; }
-  reviewQueue = pool.slice().sort(function(){ return Math.random() - 0.5; });
-  reviewIdx = 0; reviewShownTotal = 0;
+  if (!errors.length){ alert("当前没有可复习的错题，请先录入。"); return; }
+  let queue = buildReviewQueue(false);
+  if (!queue.length){
+    if (!confirm("今日没有到期的错题（共 " + errors.length + " 题已安排在未来复习）。\n要强制复习全部错题吗？")) return;
+    queue = buildReviewQueue(true);
+  }
+  reviewQueue = queue;
+  reviewIdx = 0; reviewGood = 0; reviewBad = 0; reviewSkip = 0;
   reviewSection.classList.remove("hidden");
   reviewSection.scrollIntoView({behavior:"smooth"});
   showReviewItem();
 });
+
 function showReviewItem(){
   const done = document.getElementById("review-done");
   const answer = document.getElementById("review-answer");
-  done.classList.add("hidden"); answer.classList.add("hidden");
+  const showBtn = document.getElementById("review-show");
+  const grade = document.getElementById("review-grade");
+  done.classList.add("hidden");
+  answer.classList.add("hidden");
+  grade.classList.add("hidden");
+  showBtn.classList.remove("hidden");
   if (reviewIdx >= reviewQueue.length){
     document.getElementById("review-stem").textContent = "";
     document.getElementById("review-progress").textContent = "";
-    document.getElementById("review-show").disabled = true;
-    document.getElementById("review-next").disabled = true;
+    showBtn.disabled = true;
     done.classList.remove("hidden");
-    document.getElementById("review-total").textContent = reviewShownTotal;
+    document.getElementById("review-total").textContent = reviewQueue.length;
+    document.getElementById("review-good-count").textContent = reviewGood;
+    document.getElementById("review-bad-count").textContent = reviewBad;
+    document.getElementById("review-skip-count").textContent = reviewSkip;
     return;
   }
+  showBtn.disabled = false;
   const e = reviewQueue[reviewIdx];
   document.getElementById("review-stem").textContent =
     "【" + (e.subject || "未标注") + (e.year ? " · " + e.year : "") + "】" + e.stem;
@@ -630,21 +750,119 @@ function showReviewItem(){
     (e.mine ? "<br><b>我的作答：</b>" + escapeHtml(e.mine) : "") +
     (e.note ? "<br><b>错因：</b>" + escapeHtml(e.note) : "");
   document.getElementById("review-progress").textContent =
-    "第 " + (reviewIdx + 1) + " / " + reviewQueue.length + " 题";
-  document.getElementById("review-show").disabled = false;
-  document.getElementById("review-next").disabled = false;
+    "第 " + (reviewIdx + 1) + " / " + reviewQueue.length + " 题 · 当前 " + reviewLabel(e) +
+    (e.due ? " · 计划日期 " + e.due : "");
+}
+
+/* 自评打分：记住 → 盒子进一轮、间隔拉长；没记住 → 重置回第 1 轮、当天再排 */
+function gradeCurrent(remembered){
+  const e = reviewQueue[reviewIdx];
+  if (!e) return;
+  if (remembered){
+    e.box = Math.min((typeof e.box === "number" ? e.box : 0) + 1, 5);
+    e.due = dueAfterDays(REVIEW_INTERVALS_DAYS[e.box]);
+    reviewGood++;
+  } else {
+    e.box = 0;
+    e.due = todayISO();
+    reviewBad++;
+  }
+  saveErrors();
+  renderErrors();   // 同步刷新统计与列表徽标
 }
 document.getElementById("review-show").addEventListener("click", function(){
   document.getElementById("review-answer").classList.remove("hidden");
+  document.getElementById("review-show").classList.add("hidden");
+  document.getElementById("review-grade").classList.remove("hidden");
 });
-document.getElementById("review-next").addEventListener("click", function(){
-  if (reviewIdx < reviewQueue.length) reviewShownTotal++;
+document.getElementById("review-good").addEventListener("click", function(){
+  gradeCurrent(true);
+  reviewIdx++;
+  showReviewItem();
+});
+document.getElementById("review-bad").addEventListener("click", function(){
+  gradeCurrent(false);
+  reviewIdx++;
+  showReviewItem();
+});
+document.getElementById("review-skip").addEventListener("click", function(){
+  reviewSkip++;
   reviewIdx++;
   showReviewItem();
 });
 document.getElementById("review-exit").addEventListener("click", function(){
   reviewSection.classList.add("hidden");
 });
+
+/* ---------- 统计（纯本地渲染） ---------- */
+function barChart(containerId, entries){
+  const el = document.getElementById(containerId);
+  if (!entries.length){
+    el.innerHTML = '<span style="font-size:13px;color:var(--muted)">暂无数据</span>';
+    return;
+  }
+  const max = Math.max.apply(null, entries.map(function(e){ return e.count; }));
+  el.innerHTML = entries.map(function(e){
+    return '<div class="bar-row">' +
+      '<span class="bar-label" title="' + escapeHtml(e.label) + '">' + escapeHtml(e.label) + '</span>' +
+      '<span class="bar-track"><span class="bar-fill" style="width:' +
+        Math.max(3, Math.round(e.count / max * 100)) + '%"></span></span>' +
+      '<span class="bar-count">' + e.count + '</span>' +
+    '</div>';
+  }).join("");
+}
+function groupCount(items, keyFn){
+  const map = {};
+  items.forEach(function(e){
+    const k = keyFn(e) || "未标注";
+    map[k] = (map[k] || 0) + 1;
+  });
+  return Object.keys(map).map(function(k){ return {label:k, count:map[k]}; })
+    .sort(function(a, b){ return b.count - a.count; });
+}
+function renderStats(){
+  const overview = document.getElementById("stats-overview");
+  const empty = document.getElementById("stats-empty");
+  if (!errors.length){
+    overview.innerHTML = "总错题：<b>0</b>";
+    ["stat-subject","stat-year","stat-note","stat-box"].forEach(function(id){
+      document.getElementById(id).innerHTML = "";
+    });
+    empty.classList.remove("hidden");
+    return;
+  }
+  empty.classList.add("hidden");
+  const today = todayISO();
+  const dueCount = errors.filter(function(e){ return !e.due || e.due <= today; }).length;
+  const answered = errors.filter(function(e){ return !!e.answer; }).length;
+  overview.innerHTML =
+    "总错题：<b>" + errors.length + "</b>　" +
+    "今日待复习：<b>" + dueCount + "</b>　" +
+    "已填答案：<b>" + answered + "</b>　未填答案：<b>" + (errors.length - answered) + "</b>　" +
+    "<span style=\"font-size:12px\">（统计仅基于本机数据，不参与任何上传）</span>";
+
+  barChart("stat-subject", groupCount(errors, function(e){ return e.subject; }).slice(0, 10));
+  barChart("stat-year", groupCount(errors, function(e){ return String(e.year || ""); }).slice(0, 10));
+
+  const notes = groupCount(
+    errors.filter(function(e){ return (e.note || "").trim(); }),
+    function(e){ return e.note.trim(); }
+  ).slice(0, 5).map(function(g){
+    return {label: g.label.length > 14 ? g.label.slice(0, 14) + "…" : g.label, count: g.count};
+  });
+  barChart("stat-note", notes);
+
+  const boxMap = {};
+  errors.forEach(function(e){
+    const k = reviewLabel(e);
+    boxMap[k] = (boxMap[k] || 0) + 1;
+  });
+  const boxOrder = ["新题", "第1轮（待巩固）", "第2轮", "第3轮", "第4轮", "第5轮", "第6轮"];
+  const boxEntries = boxOrder
+    .filter(function(k){ return boxMap[k]; })
+    .map(function(k){ return {label:k, count:boxMap[k]}; });
+  barChart("stat-box", boxEntries);
+}
 
 /* ---------- 备份（与 PDF 导出相互独立） ---------- */
 document.getElementById("err-backup-export").addEventListener("click", function(){
@@ -680,7 +898,9 @@ document.getElementById("err-backup-import").addEventListener("change", function
           answer: typeof e.answer === "string" ? e.answer : "",
           mine: typeof e.mine === "string" ? e.mine : "",
           note: typeof e.note === "string" ? e.note : "",
-          savedAt: typeof e.savedAt === "string" ? e.savedAt : ""
+          savedAt: typeof e.savedAt === "string" ? e.savedAt : "",
+          box: (Number.isInteger(e.box) && e.box >= 0 && e.box <= 5) ? e.box : undefined,
+          due: typeof e.due === "string" && /^\d{4}-\d{2}-\d{2}$/.test(e.due) ? e.due : undefined
         };
       });
       if (!valid.length) throw new Error("empty");

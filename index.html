@@ -108,6 +108,10 @@ button:disabled{opacity:.5;cursor:not-allowed}
 .grade-btn.good{border-color:#93c5fd;color:var(--brand);background:var(--brand-soft)}
 .grade-btn.easy{border-color:#86efac;color:#166534;background:#f0fdf4}
 .review-hint{font-size:12px;color:var(--muted);margin:8px 0 0}
+.bulk-preview{border:1px solid var(--line);border-radius:8px;background:#fafafa;padding:8px 10px;max-height:240px;overflow-y:auto;font-size:13px;color:var(--muted);white-space:pre-wrap}
+.bulk-preview b{color:var(--ink)}
+.bulk-preview .bp-item{border-top:1px dashed var(--line);padding:6px 0}
+.bulk-preview .bp-item:first-child{border-top:none;padding-top:0}
 
 /* ===== 错题列表 ===== */
 .error-item{border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:10px 0;background:#fafafa}
@@ -241,7 +245,7 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
       <button id="ai-stop" class="hidden">停止生成</button>
       <button id="ai-clear" class="hidden">清空对话</button>
     </div>
-    <p class="ai-status">未经你的操作，本页面不会自动向 AI 服务发送任何个人错题。“生成同类练习题”会把勾选的错题连同出题要求一并发给 AI，且仅在点击时发生。</p>
+    <p class="ai-status">未经你的操作，本页面不会自动向 AI 服务发送任何个人错题。“生成同类练习题”会把勾选的错题连同出题要求一并发给 AI，且仅在点击时发生。<b>多轮对话：</b>本页会保留本次会话中的历史问答（最多 30 条），并随每次请求一并发送给 AI 服务，方便连续追问；点击“清空对话”或刷新页面即可清空，历史不会写入本机存储。</p>
     <div class="chat-box hidden" id="ai-chat"></div>
     <div class="chat-loading hidden" id="ai-loading">正在请求 AI 服务…</div>
   </section>
@@ -334,6 +338,59 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
       <span id="err-form-tip" style="font-size:13px;color:var(--danger)"></span>
     </div>
 
+    <!-- 批量录入（纯本地解析） -->
+    <div class="row" style="margin-top:20px">
+      <h3 style="margin:0" class="grow">批量录入</h3>
+      <button id="bulk-toggle">展开</button>
+    </div>
+    <div id="bulk-area" class="hidden">
+      <div class="row" style="margin-top:6px;align-items:flex-end">
+        <div style="flex:0 0 190px">
+          <label for="bulk-mode">拆分方式</label>
+          <select id="bulk-mode">
+            <option value="line">按空行拆分</option>
+            <option value="sep">按分隔符行拆分</option>
+            <option value="num">按题号拆分（1. 2. …）</option>
+          </select>
+        </div>
+        <div style="flex:0 0 190px" id="bulk-sep-wrap">
+          <label for="bulk-sep">分隔符（独占一行）</label>
+          <input type="text" id="bulk-sep" placeholder="例如 === 或 ----">
+        </div>
+        <div style="flex:1 1 200px">
+          <label for="bulk-note">本批公共错因 / 笔记（可选）</label>
+          <input type="text" id="bulk-note" placeholder="应用到本批全部错题">
+        </div>
+        <div style="align-self:flex-end">
+          <button id="bulk-preview-btn">拆分预览</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px;align-items:flex-start">
+        <div style="flex:1 1 300px">
+          <label for="bulk-text">粘贴多题文本</label>
+          <textarea id="bulk-text" style="min-height:120px" placeholder="每段将整段存为“题目内容”。段内如有以“答案：”开头的行，会自动拆分为答案字段，例如：
+
+1. 已知 f(x)=x²，求 f'(1)。
+答案：f'(x)=2x，故 f'(1)=2
+
+2. …"></textarea>
+          <div class="row" style="margin-top:8px">
+            <button class="primary" id="bulk-import" disabled>导入 <span id="bulk-count">0</span> 题</button>
+            <button id="bulk-clear">清空</button>
+            <label style="display:inline-block;margin:0">
+              <input type="file" id="bulk-csv" accept=".csv,.tsv,text/csv,text/tab-separated-values" style="display:none">
+              <button id="bulk-csv-btn" type="button">从 CSV 导入</button>
+            </label>
+          </div>
+          <p class="review-hint">导入使用上方表单中的科目 / 年份 / 考试 / 来源作为本批公共信息；所有解析均在本机完成，不上传任何内容。</p>
+        </div>
+        <div style="flex:1 1 300px">
+          <label>拆分预览</label>
+          <div id="bulk-preview-box" class="bulk-preview">点击"拆分预览"查看拆分结果，确认无误后再导入。</div>
+        </div>
+      </div>
+    </div>
+
     <div class="row" style="margin-top:20px">
       <h3 style="margin:0" class="grow">已存错题（<span id="err-count">0</span>）</h3>
     </div>
@@ -421,7 +478,7 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
 
 <footer>
   个人错题仍保存在当前浏览器中，建议定期导出备份；也可将选中的错题及已填写的答案整理后，通过浏览器保存为 PDF。PDF 仅供阅读和打印，不替代可恢复数据的备份文件。内置题库随当前页面版本提供，离线可用，但不会在关闭或打开页面时自行增加新题；更新题库需要取得有权使用、可核实的题目后发布新版页面。AI 问答为可选功能，配置可用服务后需要联网；未配置或服务不可用时，本地错题、题库和 PDF 导出功能照常使用。本项目只提供 Web 版；溯源器源码与网站一同存放在该项目的 GitHub 仓库中，并按项目许可开源，第三方试题的使用权限另行遵守。
-  <p style="margin-top:8px">版本：v1.5.0 · SM-2 四档自评复习 · 备份格式自动迁移 · 同类练习题 · 热力图 · <a href="https://github.com/uahz/gaokao-error-tracer">GitHub</a></p>
+  <p style="margin-top:8px">版本：v1.6.0 · 批量录入 / CSV 导入 · AI 多轮对话 · SM-2 四档自评复习 · 备份自动迁移 · <a href="https://github.com/uahz/gaokao-error-tracer">GitHub</a></p>
 </footer>
 
 <script>
@@ -648,6 +705,219 @@ function clearErrForm(){
 }
 document.getElementById("err-clear-form").addEventListener("click", clearErrForm);
 document.getElementById("err-filter").addEventListener("input", renderErrors);
+
+/* ---------- 批量录入（纯本地解析） ---------- */
+/* 段内自动识别“答案：”行：该行及之后的行归入答案字段 */
+function splitStemAnswer(part){
+  const lines = part.split("\n");
+  for (let i = 0; i < lines.length; i++){
+    if (/^\s*(参考)?答案\s*[：:]/.test(lines[i])){
+      return {
+        stem: lines.slice(0, i).join("\n").trim(),
+        answer: [lines[i].replace(/^\s*(参考)?答案\s*[：:]\s*/, "")]
+          .concat(lines.slice(i + 1)).join("\n").trim()
+      };
+    }
+  }
+  return {stem: part, answer: ""};
+}
+
+function parseBulkText(text, mode, sep){
+  let parts;
+  if (mode === "sep"){
+    const s = (sep || "").trim();
+    if (!s) return {error: "请填写分隔符。"};
+    const esc = s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    parts = text.split(new RegExp("\\n\\s*" + esc + "\\s*(?=\\n|$)", "g"));
+    parts = parts.map(function(p){
+      return p.replace(new RegExp("^\\s*" + esc + "\\s*\\n?", "g"), "");
+    });
+  } else if (mode === "num"){
+    parts = text.split(/\n(?=\s*\d{1,3}\s*[.、．)）]\s*\S)/);
+  } else {
+    parts = text.split(/\n\s*\n+/);
+  }
+  const items = parts.map(function(p){ return p.trim(); })
+    .filter(function(p){ return p.length > 0; });
+  if (!items.length) return {error: "没有解析出任何题目，请检查拆分方式或文本内容。"};
+  return {items: items};
+}
+
+let bulkParsed = [];   // 当前预览确认的拆分结果
+
+function renderBulkPreview(){
+  const box = document.getElementById("bulk-preview-box");
+  const text = document.getElementById("bulk-text").value;
+  const mode = document.getElementById("bulk-mode").value;
+  const sep = document.getElementById("bulk-sep").value;
+  const result = parseBulkText(text, mode, sep);
+  bulkParsed = [];
+  document.getElementById("bulk-import").disabled = true;
+  document.getElementById("bulk-count").textContent = "0";
+  if (result.error){
+    box.textContent = result.error;
+    return;
+  }
+  bulkParsed = result.items.map(function(p){ return splitStemAnswer(p); });
+  box.innerHTML = "共解析出 <b>" + bulkParsed.length + "</b> 题：" + bulkParsed.map(function(it, i){
+    const stemShort = it.stem.length > 80 ? it.stem.slice(0, 80) + "…" : it.stem;
+    const ansShort = it.answer ? (it.answer.length > 40 ? it.answer.slice(0, 40) + "…" : it.answer) : "（未识别到答案行）";
+    return '<div class="bp-item"><b>第 ' + (i + 1) + ' 题</b>　' + escapeHtml(stemShort) +
+      '<br>答案：' + escapeHtml(ansShort) + '</div>';
+  }).join("");
+  document.getElementById("bulk-import").disabled = false;
+  document.getElementById("bulk-count").textContent = bulkParsed.length;
+}
+document.getElementById("bulk-toggle").addEventListener("click", function(){
+  const area = document.getElementById("bulk-area");
+  const hidden = area.classList.toggle("hidden");
+  this.textContent = hidden ? "展开" : "收起";
+});
+document.getElementById("bulk-mode").addEventListener("change", function(){
+  document.getElementById("bulk-sep-wrap").classList.toggle("hidden", this.value !== "sep");
+});
+document.getElementById("bulk-preview-btn").addEventListener("click", renderBulkPreview);
+document.getElementById("bulk-text").addEventListener("input", function(){
+  /* 文本变化后使旧预览失效，防止导入与预览不一致 */
+  bulkParsed = [];
+  document.getElementById("bulk-import").disabled = true;
+  document.getElementById("bulk-count").textContent = "0";
+  document.getElementById("bulk-preview-box").textContent = "文本已修改，请重新点击“拆分预览”。";
+});
+document.getElementById("bulk-clear").addEventListener("click", function(){
+  document.getElementById("bulk-text").value = "";
+  bulkParsed = [];
+  document.getElementById("bulk-import").disabled = true;
+  document.getElementById("bulk-count").textContent = "0";
+  document.getElementById("bulk-preview-box").textContent = "点击“拆分预览”查看拆分结果，确认无误后再导入。";
+});
+document.getElementById("bulk-import").addEventListener("click", function(){
+  if (!bulkParsed.length){ alert("请先点击“拆分预览”并确认结果。"); return; }
+  if (!confirm("将导入 " + bulkParsed.length + " 题到个人错题（不影响已有错题），继续吗？")) return;
+  const common = {
+    subject: document.getElementById("err-subject").value,
+    year: document.getElementById("err-year").value.trim(),
+    exam: document.getElementById("err-exam").value.trim(),
+    source: document.getElementById("err-source").value.trim(),
+    note: document.getElementById("bulk-note").value.trim(),
+    savedAt: new Date().toISOString()
+  };
+  const recs = bulkParsed.map(function(it){
+    return {
+      id: newId(),
+      subject: common.subject, year: common.year, exam: common.exam, source: common.source,
+      stem: it.stem,
+      answer: it.answer,
+      mine: "", note: common.note, savedAt: common.savedAt
+    };
+  }).filter(function(e){ return e.stem; });
+  if (!recs.length){ alert("没有可导入的题目（题目内容为空）。"); return; }
+  errors = recs.concat(errors);   // 新批次排在列表最前，批内保持原顺序
+  saveErrors();
+  renderErrors();
+  document.getElementById("bulk-text").value = "";
+  bulkParsed = [];
+  document.getElementById("bulk-import").disabled = true;
+  document.getElementById("bulk-count").textContent = "0";
+  document.getElementById("bulk-preview-box").textContent = "已导入 " + recs.length + " 题。可继续粘贴下一批。";
+  alert("已导入 " + recs.length + " 题。");
+});
+
+/* CSV 导入：表头自动映射；无表头按固定列序；支持引号转义与逗号/分号/制表符分隔 */
+function parseCsv(text, delim){
+  const rows = [];
+  let row = [], field = "", inQ = false;
+  for (let i = 0; i < text.length; i++){
+    const c = text[i];
+    if (inQ){
+      if (c === "\""){
+        if (text.charAt(i + 1) === "\""){ field += "\""; i++; }
+        else inQ = false;
+      } else field += c;
+    } else if (c === "\""){
+      inQ = true;
+    } else if (c === delim){
+      row.push(field); field = "";
+    } else if (c === "\n"){
+      row.push(field); field = ""; rows.push(row); row = [];
+    } else if (c !== "\r"){
+      field += c;
+    }
+  }
+  if (field !== "" || row.length){ row.push(field); rows.push(row); }
+  return rows.filter(function(r){ return r.some(function(f){ return f.trim() !== ""; }); });
+}
+function sniffDelim(text){
+  const line = text.split("\n", 1)[0] || "";
+  const counts = {",": 0, ";": 0, "\t": 0};
+  let inQ = false;
+  for (let i = 0; i < line.length; i++){
+    const c = line[i];
+    if (c === "\"") inQ = !inQ;
+    else if (!inQ && counts[c] != null) counts[c]++;
+  }
+  return Object.keys(counts).sort(function(a, b){ return counts[b] - counts[a]; })[0];
+}
+const CSV_HEADER_MAP = {
+  "科目": "subject", "subject": "subject",
+  "年份": "year", "year": "year",
+  "考试": "exam", "考试名称": "exam", "exam": "exam",
+  "来源": "source", "来源信息": "source", "source": "source",
+  "题目": "stem", "题干": "stem", "题目内容": "stem", "内容": "stem", "stem": "stem", "question": "stem",
+  "答案": "answer", "正确答案": "answer", "answer": "answer",
+  "我的作答": "mine", "作答": "mine", "mine": "mine",
+  "错因": "note", "笔记": "note", "错因笔记": "note", "note": "note"
+};
+const CSV_DEFAULT_ORDER = ["subject", "year", "exam", "source", "stem", "answer", "mine", "note"];
+document.getElementById("bulk-csv-btn").addEventListener("click", function(){
+  document.getElementById("bulk-csv").click();
+});
+document.getElementById("bulk-csv").addEventListener("change", function(ev){
+  const file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(){
+    try {
+      const rows = parseCsv(String(reader.result), sniffDelim(String(reader.result)));
+      if (rows.length < 1) throw new Error("empty");
+      let map = null;
+      const first = rows[0].map(function(h){ return h.trim().toLowerCase(); });
+      if (first.some(function(h){ return CSV_HEADER_MAP[h]; })){
+        map = first.map(function(h){ return CSV_HEADER_MAP[h] || null; });
+        rows.shift();
+      }
+      const usedOrder = map || CSV_DEFAULT_ORDER;
+      const skipped = [];
+      const recs = [];
+      rows.forEach(function(r){
+        const rec = {subject:"", year:"", exam:"", source:"", stem:"", answer:"", mine:"", note:""};
+        usedOrder.forEach(function(key, i){
+          if (key && typeof r[i] === "string") rec[key] = r[i].trim();
+        });
+        if (!rec.stem){ skipped.push(r.join(" ").slice(0, 40)); return; }
+        rec.id = newId();
+        rec.savedAt = new Date().toISOString();
+        recs.push(rec);
+      });
+      if (!recs.length){
+        alert("CSV 中没有可导入的行（缺少“题目”列内容）。");
+        return;
+      }
+      const msg = (map ? "" : "未识别到表头，将按列顺序「科目,年份,考试,来源,题目,答案,我的作答,错因」导入。\n\n") +
+        (skipped.length ? "有 " + skipped.length + " 行缺少题目内容将被跳过。\n\n" : "") +
+        "将导入 " + recs.length + " 题到个人错题（不影响已有错题），继续吗？";
+      if (!confirm(msg)) return;
+      errors = recs.concat(errors);
+      saveErrors();
+      renderErrors();
+      alert("已从 CSV 导入 " + recs.length + " 题" + (skipped.length ? "，跳过 " + skipped.length + " 行" : "") + "。");
+    } catch(err){
+      alert("CSV 解析失败：请确认是文本格式的 CSV / TSV 文件。");
+    }
+    ev.target.value = "";
+  };
+  reader.readAsText(file, "utf-8");
+});
 
 /* 删除（事件委托） */
 document.getElementById("err-list").addEventListener("click", function(ev){
@@ -1214,6 +1484,8 @@ document.getElementById("err-backup-import").addEventListener("change", function
 let aiApiKey = "";        // 仅当前页面会话内存，刷新即消失，绝不写入任何持久化位置
 let aiController = null;  // 用于“停止生成”
 let aiBusy = false;
+let aiHistory = [];       // 多轮对话历史 [{role, content}]，仅存于本页会话内存，刷新即清空
+const AI_HISTORY_MAX = 30;  // 随请求发送的历史条数上限，防止上下文无限膨胀
 const aiChat = document.getElementById("ai-chat");
 const aiLoading = document.getElementById("ai-loading");
 const aiStopBtn = document.getElementById("ai-stop");
@@ -1314,7 +1586,7 @@ function parseSseLine(line){
   return [null, false];
 }
 
-/* AI 请求共享入口：校验配置 → 请求（支持流式）→ 渲染回答 / 错误 */
+/* AI 请求共享入口：校验配置 → 请求（支持流式 + 多轮上下文）→ 渲染回答 / 错误 */
 async function runAiRequest(content, displayText){
   const btn = document.getElementById("ai-send");
   if (aiBusy){ alert("正在生成回答，请等待完成或点击“停止生成”。"); return; }
@@ -1340,6 +1612,9 @@ async function runAiRequest(content, displayText){
     "Authorization": "Bearer " + aiApiKey
   };
 
+  /* 多轮上下文：本次用户消息追加到历史之后一并发送（仅内存，不落盘） */
+  const pending = {role: "user", content: content};
+
   aiChat.classList.remove("hidden");
   document.getElementById("ai-clear").classList.remove("hidden");
   appendChatMsg("user", displayText);
@@ -1353,6 +1628,14 @@ async function runAiRequest(content, displayText){
   aiController = new AbortController();
   let acc = "";   // 流式已收到的内容（中断时保留展示）
 
+  /* 一轮问答成功（或拿到部分回答）后写入历史，供下一轮引用 */
+  function commitAiTurn(answerText){
+    aiHistory.push(pending, {role: "assistant", content: answerText});
+    if (aiHistory.length > AI_HISTORY_MAX){
+      aiHistory = aiHistory.slice(-AI_HISTORY_MAX);
+    }
+  }
+
   try {
     const resp = await fetch(endpoint, {
       method: "POST",
@@ -1360,7 +1643,7 @@ async function runAiRequest(content, displayText){
       signal: aiController.signal,
       body: JSON.stringify({
         model: model,
-        messages: [{role:"user", content: content}],
+        messages: aiHistory.concat([pending]),
         stream: useStream
       })
     });
@@ -1401,6 +1684,7 @@ async function runAiRequest(content, displayText){
         }
       }
       if (!acc.trim()) throw new Error("服务未返回任何内容。");
+      commitAiTurn(acc.trim());
     } else {
       const data = await resp.json();
       const answer = data && data.choices && data.choices[0] && data.choices[0].message &&
@@ -1410,17 +1694,19 @@ async function runAiRequest(content, displayText){
       }
       acc = answer.trim();
       appendChatMsg("ai", acc);
+      commitAiTurn(acc);
     }
   } catch(err){
     const aborted = err && err.name === "AbortError";
     const partial = acc.trim();
     if (partial){
       appendChatMsg("ai", partial + (aborted ? "\n\n（已手动停止生成）" : "\n\n（回答在此中断）"));
+      commitAiTurn(partial);   // 已收到的部分仍计入上下文，可继续追问
       if (!aborted){
         appendChatMsg("error", "流式传输中断：" + err.message + "\n已收到的内容已保留。本地错题、题库与 PDF 导出功能不受影响。");
       }
     } else if (aborted){
-      appendChatMsg("error", "已停止生成。");
+      appendChatMsg("error", "已停止生成。本轮未计入对话上下文。");
     } else {
       let hint = "";
       if (err instanceof TypeError){
@@ -1469,6 +1755,7 @@ document.getElementById("ai-practice").addEventListener("click", async function(
 });
 document.getElementById("ai-clear").addEventListener("click", function(){
   aiChat.innerHTML = "";
+  aiHistory = [];   // 清空对话同时清空上下文历史
   aiChat.classList.add("hidden");
   this.classList.add("hidden");
 });

@@ -79,6 +79,11 @@ button:disabled{opacity:.5;cursor:not-allowed}
 }
 .bank-item .badge.plain{background:#f3f4f6;color:var(--muted);border-color:var(--line)}
 .bank-item .bank-source{font-size:12px;color:var(--muted);margin-bottom:6px}
+.bank-item .bank-transfer{
+  margin-left:auto; font-size:12px; padding:2px 10px; border-radius:6px;
+  background:#fff; color:var(--brand); border:1px solid #bfdbfe; cursor:pointer;
+}
+.bank-item .bank-transfer:hover{background:var(--brand-soft)}
 .bank-item .bank-stem{white-space:pre-wrap;word-break:break-word}
 .bank-item .bank-answer{margin-top:8px;padding-top:8px;border-top:1px dashed var(--line);white-space:pre-wrap;word-break:break-word}
 .stats{display:flex;flex-wrap:wrap;gap:14px;font-size:14px;color:var(--muted);margin-bottom:10px}
@@ -512,7 +517,7 @@ footer{padding:20px 16px 40px;color:var(--muted);font-size:13px}
 
 <footer>
   个人错题仍保存在当前浏览器中，建议定期导出备份；也可将选中的错题及已填写的答案整理后，通过浏览器保存为 PDF。PDF 仅供阅读和打印，不替代可恢复数据的备份文件。内置题库随当前页面版本提供，离线可用，但不会在关闭或打开页面时自行增加新题；更新题库需要取得有权使用、可核实的题目后发布新版页面。AI 问答为可选功能，配置可用服务后需要联网；未配置或服务不可用时，本地错题、题库和 PDF 导出功能照常使用。本项目只提供 Web 版；溯源器源码与网站一同存放在该项目的 GitHub 仓库中，并按项目许可开源，第三方试题的使用权限另行遵守。
-  <p style="margin-top:8px">版本：v1.9.0 · 内置公开真题题库 31 题覆盖九科（语数英 / 物化生 / 史政地，双源核验）· 错题图片附件（IndexedDB 本机存储）· 数学公式渲染（KaTeX 内嵌）· 批量录入 / CSV 导入 · AI 多轮对话 · SM-2 四档自评复习 · 备份自动迁移 · <a href="https://github.com/uahz/gaokao-error-tracer">GitHub</a></p>
+  <p style="margin-top:8px">版本：v2.0.0 · 内置公开真题题库 41 题覆盖九科（2024/2025 高考真题 + 2026 广州一模，双源核验）· 题库题目一键转入个人错题 · 题库数据源与页面分离（构建期审核注入）· 错题图片附件（IndexedDB 本机存储）· 数学公式渲染（KaTeX 内嵌）· 批量录入 / CSV 导入 · AI 多轮对话 · SM-2 四档自评复习 · 备份自动迁移 · <a href="https://github.com/uahz/gaokao-error-tracer">GitHub</a></p>
 </footer>
 
 <script>
@@ -798,6 +803,87 @@ const BUILT_IN_BANK = [
     source: "公开真题第11题；来源：掌上高考官方答案表 + 公众号全文页 + 百度文库答案表，多源一致",
     stem: "城市地下热岛效应是指城区地下环境温度高于郊区地下环境温度的现象。与地表城市热岛效应相比，城市地下热岛效应研究更关注城区地下温度变化及其对城市环境产生的影响。据此完成 11~12 题。\n11. 城市地下热岛效应增强可导致城区（　）\nA. 土壤的碳储存能力提高　B. 园林绿化养护成本降低　C. 表层土壤干岛效应增强　D. 植物垂直分层更加明显",
     answer: "答案：C。\n解析：地下温度升高会加快土壤水分蒸发与水分下渗流失，使城区表层土壤更干燥，\"干岛效应\"增强（C）；土壤升温不利于有机碳储存（A 错）、植被水分条件变差会使养护成本上升（B 错）、水热条件单一化不利于植物分层（D 错）。"
+  },
+  /* ========== 2026年广州市普通高中毕业班综合测试(一)（2026年3月，2026广州一模）数学 ========== */
+  {
+    year: 2026,
+    subject: "数学",
+    exam: "2026年广州市普通高中毕业班综合测试(一)",
+    source: "公开模考第1题；来源：官方参考答案表（1-8：CDBCAACB）+ 锤子数学/张云帆讲数学/百度文库等多个独立解析版本一致",
+    stem: "若 $z(2+i)=5$，则 $\\bar{z}=$（　）\nA. $-2+i$　B. $2-i$　C. $2+i$　D. $-2-i$",
+    answer: "答案：C。\n解析：$z=\\frac{5}{2+i}=\\frac{5(2-i)}{(2+i)(2-i)}=2-i$，故 $\\bar{z}=2+i$，选 C。"
+  },
+  {
+    year: 2026,
+    subject: "数学",
+    exam: "2026年广州市普通高中毕业班综合测试(一)",
+    source: "公开模考第2题；来源：官方参考答案表 + 多个独立解析版本一致",
+    stem: "集合 $A=\\{x \\in \\mathbb{Z} \\mid x^2-2x \\le 0\\}$ 的子集个数为（　）\nA. $3$　B. $4$　C. $7$　D. $8$",
+    answer: "答案：D。\n解析：$x^2-2x\\le 0$ 得 $0\\le x\\le 2$，$A=\\{0,1,2\\}$ 有 3 个元素，子集个数为 $2^3=8$。"
+  },
+  {
+    year: 2026,
+    subject: "数学",
+    exam: "2026年广州市普通高中毕业班综合测试(一)",
+    source: "公开模考第3题；来源：官方参考答案表 + 多个独立解析版本一致，已验算复核",
+    stem: "已知函数 $f(x)=\\begin{cases} \\log_3(x-1), & x>1, \\\\ 3^x, & x\\le 1 \\end{cases}$，则 $f\\left(f(\\log_3 2)\\right)=$（　）\nA. $-1$　B. $0$　C. $\\log_3 2$　D. $2$",
+    answer: "答案：B。\n解析：$\\log_3 2<1$，$f(\\log_3 2)=3^{\\log_3 2}=2$，$f(2)=\\log_3(2-1)=\\log_3 1=0$。"
+  },
+  {
+    year: 2026,
+    subject: "数学",
+    exam: "2026年广州市普通高中毕业班综合测试(一)",
+    source: "公开模考第4题；来源：官方参考答案表 + 夜雨聆风清晰排版版 + 多个独立解析版本一致，公式已验算复核",
+    stem: "函数 $f(x)=\\sin\\left(x+\\frac{\\pi}{6}\\right)\\sin\\left(\\frac{\\pi}{3}-x\\right)$ 的最小正周期是（　）\nA. $2\\pi$　B. $\\frac{\\pi}{3}$　C. $\\pi$　D. $\\frac{3\\pi}{2}$",
+    answer: "答案：C。\n解析：设 $A=x+\\frac{\\pi}{6}$，$B=\\frac{\\pi}{3}-x$，则 $A-B=2x-\\frac{\\pi}{6}$，$A+B=\\frac{\\pi}{2}$。由积化和差 $\\sin A\\sin B=\\frac{1}{2}\\left[\\cos(A-B)-\\cos(A+B)\\right]=\\frac{1}{2}\\cos\\left(2x-\\frac{\\pi}{6}\\right)$，最小正周期为 $\\pi$。"
+  },
+  {
+    year: 2026,
+    subject: "数学",
+    exam: "2026年广州市普通高中毕业班综合测试(一)",
+    source: "公开模考第6题；来源：官方参考答案表 + 多个独立解析版本一致，已验算复核",
+    stem: "函数 $f(x)=\\sin x - x\\cos x$ 在区间 $(-3\\pi, 3\\pi)$ 上的极值点个数为（　）\nA. $4$　B. $5$　C. $6$　D. $7$",
+    answer: "答案：A。\n解析：$f'(x)=\\cos x - (\\cos x - x\\sin x)=x\\sin x$。令 $f'(x)=0$ 得 $x=-2\\pi,-\\pi,0,\\pi,2\\pi$，其中 $x=0$ 两侧 $f'(x)>0$ 不变号（不是极值点），故极值点为 $-2\\pi,-\\pi,\\pi,2\\pi$ 共 4 个。"
+  },
+  {
+    year: 2026,
+    subject: "数学",
+    exam: "2026年广州市普通高中毕业班综合测试(一)",
+    source: "公开模考第9题（多选）；来源：官方参考答案表（9：ABD）+ 多个独立解析版本一致，已验算复核",
+    stem: "某自动流水线生产的一种新能源汽车零配件产品的质量 $X$（单位：g）服从正态分布 $N(\\mu,\\sigma^2)$，且 $P(X<14)=\\frac{1}{8}$，$P(X\\le 18)=\\frac{7}{8}$。从该流水线上随机抽取 4 件产品，这 4 件产品中质量 $X$ 在区间 $[14,18]$ 上的件数记为 $\\xi$，则（　）\nA. $\\mu=16$\nB. $P(14\\le X\\le 18)=\\frac{3}{4}$\nC. $P(\\xi=1)=\\frac{27}{64}$\nD. $E(\\xi)=3$",
+    answer: "答案：ABD。\n解析：$P(X>18)=\\frac{1}{8}=P(X<14)$，由对称性 $\\mu=16$，A 对；$P(14\\le X\\le 18)=1-\\frac{1}{8}-\\frac{1}{8}=\\frac{3}{4}$，B 对；$\\xi\\sim B\\left(4,\\frac{3}{4}\\right)$，$P(\\xi=1)=C_4^1\\cdot\\frac{1}{4}\\cdot\\left(\\frac{3}{4}\\right)^3=\\frac{27}{64}$，C 错；$E(\\xi)=4\\times\\frac{3}{4}=3$，D 对。"
+  },
+  {
+    year: 2026,
+    subject: "数学",
+    exam: "2026年广州市普通高中毕业班综合测试(一)",
+    source: "公开模考第10题（多选）；来源：官方参考答案表（10：BC）+ 锤子数学解析一致（另有版本 OCR 讹作 CD），已独立验算复核",
+    stem: "已知 $x\\ne y$，则下列命题正确的是（　）\nA. $\\exists x, y \\in \\left(0,\\frac{\\pi}{2}\\right)$，$\\sin x+\\sin y<\\sin(x+y)$\nB. $\\forall x, y \\in \\left(0,\\frac{\\pi}{2}\\right)$，$\\sin x+\\sin y<2\\sin\\frac{x+y}{2}$\nC. $\\exists x, y \\in \\left(0,\\frac{\\pi}{2}\\right)$，$\\sin x-\\sin y<\\sin(x-y)$\nD. $\\forall x, y \\in \\left(0,\\frac{\\pi}{2}\\right)$，$\\sin x-\\sin y<2\\sin\\frac{x-y}{2}$",
+    answer: "答案：BC。\n解析：$\\sin x+\\sin y=2\\sin\\frac{x+y}{2}\\cos\\frac{x-y}{2}$。A 错——需 $\\cos\\frac{x-y}{2}<\\cos\\frac{x+y}{2}$，即 $-y>y$，不可能；B 对——$0<\\frac{x-y}{2}<\\frac{\\pi}{2}$ 且 $x\\ne y$ 时 $\\cos\\frac{x-y}{2}<1$；$\\sin x-\\sin y=2\\sin\\frac{x-y}{2}\\cos\\frac{x+y}{2}$，C 对——取 $x>y$ 时 $\\cos\\frac{x+y}{2}<\\cos\\frac{x-y}{2}$ 恒成立，$\\exists$ 显然成立；D 错——当 $x<y$ 时两边同为负且左边绝对值更小，得 $\\sin x-\\sin y>2\\sin\\frac{x-y}{2}$。"
+  },
+  {
+    year: 2024,
+    subject: "语文",
+    exam: "2024年高考 新课标Ⅰ卷",
+    source: "公开真题第17题（名篇名句默写）；来源：高考网官方试卷及答案PDF（cdn.gaokzx.com）+ 21世纪教育网真题解析 + 优途升学网，三源一致",
+    stem: "补写出下列句子中的空缺部分。\n(1) 作文课上，房老师使用《屈原列传》中\"______，______\"两句话，引导学生描写寻常事物以表示宏大意旨，列举浅近事例来传达深远意蕴。\n(2) 乡村民宿\"爱陶居\"开业了，房屋周围按照陶渊明《归园田居》（其一）中\"______，______\"的句意栽种了多种树木，受到游客喜爱。\n(3) 唐代诗人写时事，常常托之于汉代，如\"______，______\"，就是借汉喻唐，以古方今。",
+    answer: "答案：(1) 其称文小而其指极大 / 举类迩而见义远；(2) 榆柳荫后檐 / 桃李罗堂前；(3) 汉家烟尘在东北 / 汉将辞家破残贼（开放性默写，另如\"君不闻汉家山东二百州，千村万落生荆杞\"\"汉皇重色思倾国，御宇多年求不得\"等亦可）。\n易写错的字：称、指、迩、见、荫。"
+  },
+  {
+    year: 2025,
+    subject: "物理",
+    exam: "2025年广东省普通高中学业水平选择性考试",
+    source: "公开真题第3题；来源：人人文库真题解析 + 21世纪教育网一轮复习学案（标注 2025·广东高考3题），双源题干与答案一致",
+    stem: "有甲、乙两种金属，甲的逸出功小于乙的逸出功。使用某频率的光分别照射这两种金属，只有甲发射光电子，其最大初动能为 $E_k$。下列说法正确的是（　）\nA. 使用频率更小的光，可能使乙也发射光电子\nB. 使用频率更小的光，若仍能使甲发射光电子，则其最大初动能小于 $E_k$\nC. 频率不变，减弱光强，可能使乙也发射光电子\nD. 频率不变，减弱光强，若仍能使甲发射光电子，则其最大初动能小于 $E_k$",
+    answer: "答案：B。\n解析：该光的频率介于甲、乙截止频率之间，频率更小的光更不可能使乙发生光电效应（A 错）；由 $E_k=h\\nu-W_0$，频率减小则甲的最大初动能小于 $E_k$（B 对）；光强不影响是否发生光电效应与最大初动能（C、D 错）。"
+  },
+  {
+    year: 2025,
+    subject: "物理",
+    exam: "2025年广东省普通高中学业水平选择性考试",
+    source: "公开真题第5题；来源：人人文库真题解析（第5题）+ 武汉地区高校物理真题汇编docx（同一题，选项顺序不同），双源一致，加速度比例已独立验算复核",
+    stem: "一颗绕太阳运行的小行星，其轨道近日点和远日点到太阳的距离分别约为地球到太阳距离的 5 倍和 7 倍。关于该小行星，下列说法正确的是（　）\nA. 公转周期约为 6 年\nB. 从远日点到近日点所受太阳引力大小逐渐减小\nC. 从远日点到近日点线速度大小逐渐减小\nD. 在近日点加速度大小约为地球公转加速度的 $\\frac{1}{25}$",
+    answer: "答案：D。\n解析：轨道半长轴 $a=\\frac{5R+7R}{2}=6R$，由开普勒第三定律 $T=\\sqrt{6^3}\\,T_{地}=6\\sqrt{6}\\approx 14.7$ 年，A 错；从远日点到近日点距离减小，由万有引力定律引力增大、由开普勒第二定律线速度增大，B、C 错；近日点加速度 $a_{近}=\\frac{GM}{(5R)^2}=\\frac{1}{25}\\cdot\\frac{GM}{R^2}$，为地球公转加速度的 $\\frac{1}{25}$，D 对。"
   }
 ];
 
@@ -1009,12 +1095,14 @@ function renderBank(){
       .join(" ").toLowerCase().indexOf(kw) !== -1;
   }) : bankItems;
 
-  list.innerHTML = filtered.map(function(i, idx){
-    return '<div class="bank-item">' +
+  list.innerHTML = filtered.map(function(i){
+    const idx = bankItems.indexOf(i);
+    return '<div class="bank-item" data-idx="' + idx + '">' +
       '<div class="bank-head">' +
         '<span class="badge">' + escapeHtml(i.year) + '</span>' +
         '<span class="badge">' + escapeHtml(i.subject) + '</span>' +
         '<span class="badge plain">' + escapeHtml(i.exam) + '</span>' +
+        '<button type="button" class="bank-transfer" data-idx="' + idx + '" title="把题干、答案与来源预填到下方“个人错题”录入表单">转入我的错题</button>' +
       '</div>' +
       '<div class="bank-source">来源：' + escapeHtml(i.source) + '</div>' +
       '<div class="bank-stem">' + escapeHtml(i.stem) + '</div>' +
@@ -1024,6 +1112,37 @@ function renderBank(){
   renderMathInNode(list);
 }
 document.getElementById("bank-search").addEventListener("input", renderBank);
+
+/* 题库题目一键转入个人错题（v2.0）：预填录入表单并滚动到位，不直接入库，留人工确认 */
+function transferBankItem(idx){
+  const it = bankItems[idx];
+  if (!it) return;
+  const setVal = function(id, v){ const el = document.getElementById(id); if (el) el.value = v; };
+  const subj = document.getElementById("err-subject");
+  if (subj){
+    let hit = false;
+    for (const opt of subj.options){
+      if (opt.value === it.subject || opt.textContent === it.subject){ subj.value = opt.value; hit = true; break; }
+    }
+    if (!hit) subj.value = "其他";
+  }
+  setVal("err-year", String(it.year));
+  setVal("err-exam", it.exam);
+  setVal("err-source", "内置题库收录 · " + it.source);
+  setVal("err-stem", it.stem);
+  setVal("err-answer", it.answer);
+  document.getElementById("errors-section").scrollIntoView({ behavior: "smooth" });
+  const tip = document.getElementById("err-form-tip");
+  if (tip){
+    tip.style.color = "var(--muted)";
+    tip.textContent = "已从内置题库预填「" + it.year + " " + it.subject + "」，请补充“我的作答/错因”后保存。";
+    setTimeout(function(){ tip.textContent = ""; tip.style.color = ""; }, 8000);
+  }
+}
+document.getElementById("bank-list").addEventListener("click", function(ev){
+  const btn = ev.target.closest(".bank-transfer");
+  if (btn) transferBankItem(Number(btn.dataset.idx));
+});
 
 /* ---------- 个人错题：独立存储 ---------- */
 let errors = [];
